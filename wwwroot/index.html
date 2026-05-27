@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FileShare - انتقال فایل و پیام</title>
+  <link rel="icon" href="/icon.ico" sizes="any">
+  <link rel="shortcut icon" href="/icon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <style>
@@ -52,6 +54,8 @@
     .hTabBtn{border:none;border-radius:6px;background:transparent;color:var(--text2);padding:5px 12px;font:700 12px 'Vazirmatn',sans-serif;cursor:pointer;transition:all var(--tr);white-space:nowrap}
     .hTabBtn:hover{color:var(--text);background:var(--bg2)}
     .hTabBtn.active{color:#fff;background:linear-gradient(135deg,var(--accent2),var(--accent))}
+    .tabIcon{width:18px;height:18px;object-fit:contain;vertical-align:-4px;margin-left:6px}
+    .hTabBtn .tabIcon{width:15px;height:15px;vertical-align:-3px;margin-left:4px}
 
     /* ===== MAIN ===== */
     main{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:28px 20px 60px;display:grid;gap:18px}
@@ -171,7 +175,7 @@
       </div>
       <!-- Guide tab -->
       <div class="hTabs">
-        <button class="hTabBtn" id="guideTabBtn" type="button">📖 راهنما</button>
+        <button class="hTabBtn" id="guideTabBtn" type="button"><img class="tabIcon" src="/icon.ico" alt="">راهنما</button>
       </div>
       <button class="tb" id="themeBtn" title="تغییر تم" aria-label="تغییر تم"></button>
     </div>
@@ -182,8 +186,8 @@
   <div class="hero"><h1>اشتراک‌گذاری فایل و پیام</h1><p>از تب پایین  فایل‌ها را مدیریت کن یا بخش تبادل پیام را برای ارسال و دریافت متن بین دستگاه‌ها باز کن.</p></div>
 
   <div class="tabs" role="tablist" aria-label="بخش‌ها">
-    <button class="tabBtn active" type="button" role="tab" aria-selected="true" aria-controls="filesPanel" data-tab="files">📁 فایل‌ها</button>
-    <button class="tabBtn" type="button" role="tab" aria-selected="false" aria-controls="messagesPanel" data-tab="messages">💬 تبادل پیام</button>
+    <button class="tabBtn active" type="button" role="tab" aria-selected="true" aria-controls="filesPanel" data-tab="files"><img class="tabIcon" src="/icon.ico" alt="">فایل‌ها</button>
+    <button class="tabBtn" type="button" role="tab" aria-selected="false" aria-controls="messagesPanel" data-tab="messages"><img class="tabIcon" src="/icon.ico" alt="">تبادل پیام</button>
   </div>
 
   <!-- FILES PANEL -->
