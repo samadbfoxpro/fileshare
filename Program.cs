@@ -13,6 +13,8 @@ using System.Drawing;
 const int Port = 8887;
 var appDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "FileShare");
 var uploadDir = Path.Combine(appDir, "uploads");
+var sharedFolderConfig = Path.Combine(appDir, "shared-folder.txt");
+var sharedFolder = File.Exists(sharedFolderConfig) ? File.ReadAllText(sharedFolderConfig, Encoding.UTF8).Trim() : string.Empty;
 var messageLog = Path.Combine(appDir, "messages.jsonl");
 var jsonOptions = new JsonSerializerOptions
 {
@@ -21,6 +23,10 @@ var jsonOptions = new JsonSerializerOptions
 };
 
 Directory.CreateDirectory(uploadDir);
+if (!string.IsNullOrWhiteSpace(sharedFolder))
+{
+    Directory.CreateDirectory(sharedFolder);
+}
 File.AppendAllText(messageLog, string.Empty, Encoding.UTF8);
 
 var listener = new HttpListener();
@@ -154,11 +160,12 @@ Panel Divider(string label)
 // ═══════════════════════════════════════════════════════════
 var form = new Form
 {
-    Text = "FileShare",
-    Size = new Size(560, 430),
-    MinimumSize = new Size(520, 400),
-    FormBorderStyle = FormBorderStyle.FixedSingle,
-    MaximizeBox = false,
+    Text = "FileShare v1.2",
+    Size = new Size(580, 545),
+    MinimumSize = new Size(560, 520),
+    FormBorderStyle = FormBorderStyle.Sizable,
+    MaximizeBox = true,
+    AutoScroll = true,
     StartPosition = FormStartPosition.CenterScreen,
     BackColor = cBg,
     ForeColor = cText,
@@ -185,14 +192,14 @@ var canvas = new Panel
 {
     Dock = DockStyle.Fill,
     BackColor = cBg,
-    Padding = new Padding(20, 18, 20, 14)
+    Padding = new Padding(20, 18, 20, 28)
 };
 form.Controls.Add(canvas);
 
 // ── هدر ──────────────────────────────────────────────────
 var lblTitle = new Label
 {
-    Text = "FileShare",
+    Text = "FileShare v1.2",
     Location = new Point(0, 0),
     AutoSize = true,
     ForeColor = cText,
@@ -224,11 +231,12 @@ canvas.Controls.Add(badgeLive);
 // از TableLayoutPanel فقط یک‌بار برای تقسیم دو ستون استفاده می‌کنیم
 var grid = new TableLayoutPanel
 {
-    Dock = DockStyle.Fill,
+    Dock = DockStyle.Top,
     ColumnCount = 2, RowCount = 1,
     BackColor = Color.Transparent,
     Margin = new Padding(0),
-    Padding = new Padding(0)
+    Padding = new Padding(0),
+    Height = 330
 };
 grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 52));
 grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48));
@@ -279,11 +287,27 @@ var btnOpen    = Btn("باز کردن", cBlueBg, cBlue, 86);
 var btnCopy    = Btn("کپی", cGrayBg, cSub, 62);
 var btnRefresh = Btn("↺  تازه‌سازی", cGrayBg, cSub, 88);
 
-var lcBtnRow = new Panel { Dock = DockStyle.Bottom, Height = 32, BackColor = cCard };
+var lcBtnRow = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 32, BackColor = cCard, ColumnCount = 3, RowCount = 1, Padding = new Padding(0), Margin = new Padding(0) };
+lcBtnRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+lcBtnRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+lcBtnRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
 btnOpen.Location    = new Point(0, 0);
 btnCopy.Location    = new Point(90, 0);
 btnRefresh.Location = new Point(156, 0);
-lcBtnRow.Controls.AddRange(new Control[] { btnOpen, btnCopy, btnRefresh });
+foreach (var button in new[] { btnOpen, btnCopy, btnRefresh })
+{
+    button.Dock = DockStyle.Fill;
+    button.Width = 0;
+    button.Height = 28;
+    button.Margin = new Padding(0, 0, 4, 0);
+}
+btnRefresh.Margin = new Padding(0);
+btnOpen.Text = "Open";
+btnCopy.Text = "Copy";
+btnRefresh.Text = "Refresh";
+lcBtnRow.Controls.Add(btnOpen, 0, 0);
+lcBtnRow.Controls.Add(btnCopy, 1, 0);
+lcBtnRow.Controls.Add(btnRefresh, 2, 0);
 
 // چیدمان کارت چپ (از پایین به بالا برای Dock)
 leftInner.Controls.Add(networkBox);     // Fill - وسط
@@ -313,6 +337,7 @@ rightCard.Paint += (_, e) =>
 };
 
 var rightInner = new Panel { Dock = DockStyle.Fill, BackColor = cCard };
+var sharedCard = new Panel { Dock = DockStyle.Bottom, Height = 78, BackColor = cCard, Padding = new Padding(0, 10, 0, 0) };
 
 var rcTitle = Lbl("وضعیت", new Font("Segoe UI Semibold", 8F, FontStyle.Bold), cDim, 10);
 rcTitle.Dock = DockStyle.Top;
@@ -338,6 +363,19 @@ rcPathVal.Dock = DockStyle.Top;
 rcPathVal.AutoSize = false;
 rcPathVal.Height = 16;
 rcPathVal.AutoEllipsis = true;
+var sharedPathText = ShortPath(sharedFolder, 35);
+var rcSharedHead = Lbl("Ù¾ÙˆØ´Ù‡ Ø§Ø´ØªØ±Ø§Ú©ÛŒ", new Font("Segoe UI", 7.5F), cDim, 4);
+rcSharedHead.Dock = DockStyle.Top;
+var rcSharedVal = Lbl(string.IsNullOrWhiteSpace(sharedPathText) ? "ØªÙ†Ø¸ÛŒÙ… Ù†Ø´Ø¯Ù‡" : sharedPathText, new Font("Consolas", 8F), cSub, 8);
+rcSharedVal.Dock = DockStyle.Top;
+rcSharedVal.AutoSize = false;
+rcSharedVal.Height = 16;
+rcSharedVal.AutoEllipsis = true;
+var btnSharedFolder = Btn("ØªÙ†Ø¸ÛŒÙ… Ù¾ÙˆØ´Ù‡", cGrayBg, cSub, 0, 28);
+btnSharedFolder.Dock = DockStyle.Top;
+rcSharedHead.Text = "پوشه اشتراکی";
+rcSharedVal.Text = string.IsNullOrWhiteSpace(sharedPathText) ? "تنظیم نشده" : sharedPathText;
+btnSharedFolder.Text = "تنظیم پوشه";
 
 // امکانات
 var rcFeatHead = Lbl("امکانات", new Font("Segoe UI", 7.5F), cDim, 6);
@@ -374,6 +412,10 @@ rightInner.Controls.Add(rcPortVal);
 rightInner.Controls.Add(rcPortHead);
 rightInner.Controls.Add(rcTitle);
 rightCard.Controls.Add(rightInner);
+sharedCard.Controls.Add(btnSharedFolder);
+sharedCard.Controls.Add(rcSharedVal);
+sharedCard.Controls.Add(rcSharedHead);
+rightCard.Controls.Add(sharedCard);
 rightCard.Controls.Add(btnExit);
 
 grid.Controls.Add(leftCard, 0, 0);
@@ -416,6 +458,30 @@ void RefreshNetwork()
     }
     foreach (var url in urls)
         networkBox.Items.Add(url);
+}
+
+void RefreshSharedFolderUi()
+{
+    var value = ShortPath(sharedFolder, 35);
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        rcSharedVal.Text = "تنظیم نشده";
+        return;
+    }
+
+    rcSharedVal.Text = value;
+    return;
+    rcSharedVal.Text = string.IsNullOrWhiteSpace(value) ? "ØªÙ†Ø¸ÛŒÙ… Ù†Ø´Ø¯Ù‡" : value;
+}
+
+string ShortPath(string value, int maxLength)
+{
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        return string.Empty;
+    }
+
+    return value.Length > maxLength ? "..." + value[^Math.Max(0, maxLength - 3)..] : value;
 }
 
 void Shutdown()
@@ -463,6 +529,44 @@ void SetClipboardText(string value)
     }
 }
 
+string? ShowFolderPicker(string initialPath)
+{
+    string? selectedPath = null;
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            using var dialog = new FolderBrowserDialog
+            {
+                Description = "Select shared folder",
+                UseDescriptionForTitle = true,
+                SelectedPath = initialPath
+            };
+
+            if (dialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
+            {
+                selectedPath = dialog.SelectedPath;
+            }
+        }
+        catch (Exception error)
+        {
+            failure = error;
+        }
+    });
+
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return selectedPath;
+}
+
 btnOpen.Click += (_, _) =>
 {
     try
@@ -501,6 +605,33 @@ btnRefresh.Click += (_, _) =>
     catch (Exception error)
     {
         MessageBox.Show(form, $"Could not refresh network addresses:\r\n{error.Message}", "FileShare", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+    }
+};
+btnSharedFolder.Click += (_, _) =>
+{
+    try
+    {
+        var initialPath = Directory.Exists(sharedFolder)
+            ? sharedFolder
+            : Directory.Exists(uploadDir)
+                ? uploadDir
+                : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        var selectedPath = ShowFolderPicker(initialPath);
+        if (string.IsNullOrWhiteSpace(selectedPath))
+        {
+            return;
+        }
+
+        sharedFolder = selectedPath;
+        Directory.CreateDirectory(sharedFolder);
+        File.WriteAllText(sharedFolderConfig, sharedFolder, Encoding.UTF8);
+        RefreshSharedFolderUi();
+        statusBar.Text = "Shared folder updated.";
+    }
+    catch (Exception error)
+    {
+        MessageBox.Show(form, $"Could not set shared folder:\r\n{error.Message}", "FileShare", MessageBoxButtons.OK, MessageBoxIcon.Warning);
     }
 };
 btnExit.Click += (_, _) =>
@@ -554,21 +685,16 @@ async Task HandleRequestAsync(HttpListenerContext context)
 
         if (req.HttpMethod == "GET" && path == "/api/files")
         {
-            var files = Directory.GetFiles(uploadDir)
-                .Select(file =>
-                {
-                    var info = new FileInfo(file);
-                    return new { name = info.Name, size = info.Length, modified = info.LastWriteTimeUtc };
-                })
-                .OrderByDescending(file => file.modified);
+            var files = GetVisibleFiles()
+                .OrderByDescending(file => file.Modified);
             await SendJsonAsync(res, files);
             return;
         }
 
         if (req.HttpMethod == "GET" && path.StartsWith("/download/", StringComparison.Ordinal))
         {
-            var name = SafeName(Uri.UnescapeDataString(path["/download/".Length..]));
-            var filePath = Path.Combine(uploadDir, name);
+            var request = ParseFileRequest(path["/download/".Length..]);
+            var filePath = GetFilePath(request.Name, request.Source);
             if (!File.Exists(filePath))
             {
                 await SendTextAsync(res, 404, "File not found");
@@ -577,7 +703,7 @@ async Task HandleRequestAsync(HttpListenerContext context)
 
             res.StatusCode = 200;
             res.ContentType = "application/octet-stream";
-            res.AddHeader("Content-Disposition", $"attachment; filename*=UTF-8''{Uri.EscapeDataString(name)}");
+            res.AddHeader("Content-Disposition", $"attachment; filename*=UTF-8''{Uri.EscapeDataString(request.Name)}");
             await using var stream = File.OpenRead(filePath);
             res.ContentLength64 = stream.Length;
             await stream.CopyToAsync(res.OutputStream);
@@ -586,8 +712,14 @@ async Task HandleRequestAsync(HttpListenerContext context)
 
         if (req.HttpMethod == "DELETE" && path.StartsWith("/api/files/", StringComparison.Ordinal))
         {
-            var name = SafeName(Uri.UnescapeDataString(path["/api/files/".Length..]));
-            var filePath = Path.Combine(uploadDir, name);
+            var request = ParseFileRequest(path["/api/files/".Length..]);
+            if (request.Source != "upload")
+            {
+                await SendTextAsync(res, 403, "Shared files cannot be deleted here");
+                return;
+            }
+
+            var filePath = GetFilePath(request.Name, request.Source);
             if (!File.Exists(filePath))
             {
                 await SendTextAsync(res, 404, "File not found");
@@ -822,6 +954,45 @@ async Task WriteMessagesAsync(IEnumerable<MessageItem> messages)
     await File.WriteAllTextAsync(messageLog, string.IsNullOrEmpty(body) ? string.Empty : body + "\n", Encoding.UTF8);
 }
 
+IEnumerable<FileItem> GetVisibleFiles()
+{
+    foreach (var file in Directory.GetFiles(uploadDir))
+    {
+        var info = new FileInfo(file);
+        yield return new FileItem(info.Name, info.Length, info.LastWriteTimeUtc, "upload", true);
+    }
+
+    if (string.IsNullOrWhiteSpace(sharedFolder) || !Directory.Exists(sharedFolder))
+    {
+        yield break;
+    }
+
+    foreach (var file in Directory.GetFiles(sharedFolder))
+    {
+        var info = new FileInfo(file);
+        yield return new FileItem(info.Name, info.Length, info.LastWriteTimeUtc, "shared", false);
+    }
+}
+
+(string Name, string Source) ParseFileRequest(string value)
+{
+    var raw = Uri.UnescapeDataString(value);
+    var separator = raw.IndexOf('/', StringComparison.Ordinal);
+    if (separator < 0)
+    {
+        return (SafeName(raw), "upload");
+    }
+
+    var source = raw[..separator] == "shared" ? "shared" : "upload";
+    return (SafeName(raw[(separator + 1)..]), source);
+}
+
+string GetFilePath(string name, string source)
+{
+    var root = source == "shared" ? sharedFolder : uploadDir;
+    return Path.Combine(root, SafeName(name));
+}
+
 string UniquePath(string fileName)
 {
     var target = Path.Combine(uploadDir, fileName);
@@ -898,4 +1069,5 @@ int LastIndexOf(byte[] source, byte[] pattern)
 
 record MessageInput(string? Text, string? From);
 record DeleteInput(long[] Ids);
+record FileItem(string Name, long Size, DateTime Modified, string Source, bool CanDelete);
 record MessageItem(long Id, string From, string Text, DateTimeOffset Created, DateTimeOffset? Edited);

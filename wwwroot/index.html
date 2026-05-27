@@ -156,7 +156,7 @@
   <div class="hi">
     <div class="logo">
       <div class="li"><img src="/icon.ico" alt="FileShare Logo"></div>
-      <div><span class="lt">FileShare v1.1</span><span class="ls">انتقال فایل و پیام در شبکه محلی</span></div>
+      <div><span class="lt">FileShare v1.2</span><span class="ls">انتقال فایل و پیام در شبکه محلی</span></div>
     </div>
     <div class="hControls">
       <!-- Network pill with dropdown -->
@@ -273,6 +273,23 @@
         <div class="gsText">از هر دستگاه دیگری می‌توانی فایل را با دکمه <strong>دانلود</strong> دریافت کنی. برای حذف هم دکمه <strong>حذف</strong> وجود دارد.</div>
       </div>
       <div class="guideTip">💡 <b>نکته:</b> فایل‌ها در پوشه <b>Downloads/FileShare/uploads</b> سیستم ذخیره می‌شوند. حجم هر فایل محدودیتی ندارد.</div>
+    </div>
+
+    <div class="guideSec">
+      <h3>🗂 پوشه اشتراکی</h3>
+      <div class="guideStep">
+        <div class="gsNum">۱</div>
+        <div class="gsText">در پنجره اصلی برنامه، از کارت <strong>پوشه اشتراکی</strong> روی دکمه <strong>تنظیم پوشه</strong> بزن و یک پوشه از سیستم انتخاب کن.</div>
+      </div>
+      <div class="guideStep">
+        <div class="gsNum">۲</div>
+        <div class="gsText">فایل‌های داخل آن پوشه، بدون آپلود دوباره، در بخش <strong class="guideBadge">📁 فایل‌ها</strong> با برچسب <strong>اشتراکی</strong> نمایش داده می‌شوند.</div>
+      </div>
+      <div class="guideStep">
+        <div class="gsNum">۳</div>
+        <div class="gsText">دستگاه‌های دیگر می‌توانند این فایل‌ها را دانلود کنند، اما دکمه حذف برای فایل‌های اشتراکی نمایش داده نمی‌شود تا فایل‌های اصلی سیستم ناخواسته پاک نشوند.</div>
+      </div>
+      <div class="guideTip">💡 <b>نکته:</b> برای تغییر پوشه اشتراکی، دوباره از همان دکمه <b>تنظیم پوشه</b> استفاده کن.</div>
     </div>
 
     <div class="guideSec">
@@ -614,6 +631,23 @@
     xhr.onerror=()=>{uploadBtn.disabled=false;setMsg('ارتباط با سرور قطع شد.','err')};
     xhr.send(data);
   });
+
+  // Shared-folder aware file list override
+  loadFiles=async function(){
+    try{
+      const res=await fetch('/api/files');const files=await res.json();
+      if(!files.length){fileList.innerHTML='<div class="es"><span class="esi">📭</span>هنوز فایلی برای نمایش وجود ندارد.</div>';return}
+      fileList.innerHTML='';const frag=document.createDocumentFragment();
+      for(const file of files){
+        const row=document.createElement('div'),shared=file.source==='shared';
+        const dl=shared?`/download/shared/${encodeURIComponent(file.name)}`:`/download/${encodeURIComponent(file.name)}`;
+        row.className='fr';
+        row.innerHTML=`<div><div class="fn"></div><div class="fm"><span>💾 ${fmtBytes(file.size)}</span><span>🕐 ${fmtDate(file.modified)}</span>${shared?'<span>اشتراکی</span>':''}</div></div><div class="fa"><a class="btn bd" href="${dl}">دانلود</a>${file.canDelete?`<button class="btn bd br" type="button" data-delete="${encodeURIComponent(file.name)}">حذف</button>`:''}</div>`;
+        row.querySelector('.fn').textContent=file.name;frag.appendChild(row);
+      }
+      fileList.appendChild(frag);
+    }catch{fileList.innerHTML='<div class="es"><span class="esi">⚠</span>خواندن فایل‌ها ناموفق بود.</div>'}
+  };
 
   // Init
   loadNetworkLinks();loadFiles();loadMessages();
