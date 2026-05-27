@@ -206,3 +206,4 @@ The generated executable does not require `.NET 9` to be installed on the target
 - Shared-folder files are download-only from the web panel and cannot be deleted there.
 - This app is designed for trusted local networks. Do not run it on public or untrusted networks.
 "# fileshare" 
+"# fileshare" 
