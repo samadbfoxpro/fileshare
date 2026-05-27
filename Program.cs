@@ -29,20 +29,7 @@ if (!string.IsNullOrWhiteSpace(sharedFolder))
 }
 File.AppendAllText(messageLog, string.Empty, Encoding.UTF8);
 
-var listener = new HttpListener();
-try
-{
-    listener.Prefixes.Add($"http://+:{Port}/");
-    listener.Start();
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"Could not bind to http://+:{Port}/ ({ex.Message}). Falling back to localhost only.\n" +
-        "To allow other devices to connect without this fallback, run an elevated prompt and register the URL ACL: netsh http add urlacl url=http://+:8887/ user=Everyone");
-    listener = new HttpListener();
-    listener.Prefixes.Add($"http://localhost:{Port}/");
-    listener.Start();
-}
+var listener = StartHttpListener(out var networkSharingEnabled);
 
 var localUrl = $"http://localhost:{Port}";
 
@@ -450,6 +437,12 @@ canvas.Controls.Add(headerWrap);  // Top — بعد، روی grid می‌نشی�
 void RefreshNetwork()
 {
     networkBox.Items.Clear();
+    if (!networkSharingEnabled)
+    {
+        networkBox.Items.Add("Network sharing needs Windows permission. Restart app after allowing access.");
+        return;
+    }
+
     var urls = GetLocalIps().Select(ip => $"http://{ip}:{Port}").ToList();
     if (urls.Count == 0)
     {
@@ -488,6 +481,68 @@ void Shutdown()
 {
     try { listener.Stop(); } catch { }
     try { listener.Close(); } catch { }
+}
+
+HttpListener StartHttpListener(out bool networkEnabled)
+{
+    if (TryStartListener($"http://+:{Port}/", out var publicListener))
+    {
+        networkEnabled = true;
+        return publicListener;
+    }
+
+    TryAddUrlAcl();
+
+    if (TryStartListener($"http://+:{Port}/", out publicListener))
+    {
+        networkEnabled = true;
+        return publicListener;
+    }
+
+    networkEnabled = false;
+    if (TryStartListener($"http://localhost:{Port}/", out var localListener))
+    {
+        return localListener;
+    }
+
+    throw new InvalidOperationException($"Could not start FileShare on port {Port}.");
+}
+
+bool TryStartListener(string prefix, out HttpListener result)
+{
+    result = new HttpListener();
+    try
+    {
+        result.Prefixes.Add(prefix);
+        result.Start();
+        return true;
+    }
+    catch
+    {
+        try { result.Close(); } catch { }
+        return false;
+    }
+}
+
+void TryAddUrlAcl()
+{
+    try
+    {
+        var args = $"/c netsh http add urlacl url=http://+:{Port}/ user=Everyone";
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "cmd.exe",
+            Arguments = args,
+            Verb = "runas",
+            UseShellExecute = true,
+            WindowStyle = ProcessWindowStyle.Hidden
+        });
+        process?.WaitForExit(15000);
+    }
+    catch
+    {
+        // If the user cancels UAC, FileShare still works locally.
+    }
 }
 
 void UseImmersiveDarkTitleBar(Form target)
@@ -678,7 +733,9 @@ async Task HandleRequestAsync(HttpListenerContext context)
             {
                 port = Port,
                 local = localUrl,
-                links = GetLocalIps().Select(ip => new { ip, url = $"http://{ip}:{Port}" })
+                links = networkSharingEnabled
+                    ? GetLocalIps().Select(ip => new { ip, url = $"http://{ip}:{Port}" })
+                    : []
             });
             return;
         }
