@@ -10,6 +10,10 @@ obj/
 publish/
 *.pdb
 
+# Local Git helper scripts
+git-upload.bat
+git-download.bat
+
 # OS/editor noise
 Thumbs.db
 Desktop.ini

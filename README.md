@@ -102,20 +102,6 @@ bin\Release\net9.0-windows\win-x64\publish\FileShare.exe
 - فایل‌های پوشه اشتراکی فقط برای دانلود نمایش داده می‌شوند و از پنل وب حذف نمی‌شوند.
 - این برنامه برای شبکه‌های قابل اعتماد طراحی شده است؛ آن را روی شبکه عمومی یا ناشناس اجرا نکنید.
 
-### هماهنگ‌سازی با GitHub
-
-برای ارسال تغییرات به مخزن:
-
-```bat
-git-upload.bat "your commit message"
-```
-
-برای گرفتن آخرین تغییرات از مخزن:
-
-```bat
-git-download.bat
-```
-
 ---
 
 ## English
@@ -219,17 +205,3 @@ The generated executable does not require `.NET 9` to be installed on the target
 - The app listens on port `8887`.
 - Shared-folder files are download-only from the web panel and cannot be deleted there.
 - This app is designed for trusted local networks. Do not run it on public or untrusted networks.
-
-### GitHub Sync Helpers
-
-Upload local changes to the repository:
-
-```bat
-git-upload.bat "your commit message"
-```
-
-Download the latest changes from the repository:
-
-```bat
-git-download.bat
-```
