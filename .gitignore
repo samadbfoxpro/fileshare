@@ -1,0 +1,16 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build and publish output
+publish/
+*.pdb
+
+# OS/editor noise
+Thumbs.db
+Desktop.ini
+.DS_Store

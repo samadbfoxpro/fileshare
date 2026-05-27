@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>wwwroot\icon.ico</ApplicationIcon>
+    <AssemblyName>FileShare</AssemblyName>
+    <RootNamespace>FileShare</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="wwwroot\index.html" LogicalName="wwwroot.index.html" />
+    <EmbeddedResource Include="wwwroot\icon.ico" LogicalName="wwwroot.icon.ico" />
+  </ItemGroup>
+
+</Project>
