@@ -4,7 +4,7 @@
 
 **FileShare** یک برنامه سبک ویندوزی برای اشتراک‌گذاری فایل و پیام در شبکه محلی است. برنامه یک پنجره مدیریتی تمیز دارد و هم‌زمان یک پنل وب داخلی اجرا می‌کند تا دستگاه‌های دیگر داخل همان شبکه، مثل موبایل یا لپ‌تاپ، بتوانند از طریق مرورگر به فایل‌ها و پیام‌ها دسترسی داشته باشند.
 
-نسخه فعلی: **1.2**
+نسخه فعلی: **1.3**
 
 ### قابلیت‌های اصلی
 
@@ -108,7 +108,7 @@ bin\Release\net9.0-windows\win-x64\publish\FileShare.exe
 
 **FileShare** is a lightweight Windows app for sharing files and text messages across a local network. It provides a clean desktop control window and runs an internal web panel so other devices on the same network, such as phones or laptops, can connect through a browser.
 
-Current version: **1.2**
+Current version: **1.3**
 
 ### Main Features
 

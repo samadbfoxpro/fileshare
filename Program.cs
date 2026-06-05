@@ -148,7 +148,7 @@ Panel Divider(string label)
 // ═══════════════════════════════════════════════════════════
 var form = new Form
 {
-    Text = "FileShare v1.2",
+    Text = "FileShare v1.3",
     Size = new Size(580, 545),
     MinimumSize = new Size(560, 520),
     FormBorderStyle = FormBorderStyle.Sizable,
@@ -187,7 +187,7 @@ form.Controls.Add(canvas);
 // ── هدر ──────────────────────────────────────────────────
 var lblTitle = new Label
 {
-    Text = "FileShare v1.2",
+    Text = "FileShare v1.3",
     Location = new Point(0, 0),
     AutoSize = true,
     ForeColor = cText,
