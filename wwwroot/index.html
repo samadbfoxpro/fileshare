@@ -35,6 +35,7 @@
     @keyframes dropIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
     .netPill.open .netDropdown{display:grid;gap:6px}
     .netDItem{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:9px 11px}
+    .netDQr{width:88px;height:88px;border-radius:6px;background:#fff;border:1px solid var(--border2);padding:4px;object-fit:contain;flex-shrink:0}
     .netDUrl{direction:ltr;text-align:left;font:700 12px Consolas,monospace;color:var(--text);overflow-wrap:anywhere;flex:1}
     .netDIp{display:block;font-size:10px;color:var(--text3);direction:ltr;text-align:left;margin-top:1px}
     .netCopyBtn{background:var(--bg2);border:1px solid var(--border2);color:var(--accent);border-radius:6px;padding:4px 10px;font:700 11px 'Vazirmatn',sans-serif;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
@@ -147,6 +148,7 @@
     @media(max-width:600px){
       main{padding-top:20px}.tabs{top:62px}.card,.guideSec{padding:16px}
       .fr,.netItem{grid-template-columns:1fr}.fa{justify-content:stretch}.bd{width:100%}
+      .netDItem{display:grid}.netDQr{width:120px;height:120px;justify-self:center}
       .remoteTop,.remoteActions{grid-template-columns:1fr;display:grid}.remoteActions .bd{width:100%}
       .bulkBar{display:grid}.msgBtns{justify-content:stretch}
       .hTabs{display:none}
@@ -398,9 +400,28 @@
     for(const item of links){
       const el=document.createElement('div');
       el.className='netDItem';
-      el.innerHTML=`<div><div class="netDUrl"></div><span class="netDIp"></span></div><button class="netCopyBtn" type="button" data-copy-url="${item.url}">کپی</button>`;
-      el.querySelector('.netDUrl').textContent=item.url;
-      el.querySelector('.netDIp').textContent=item.ip;
+      const qr=document.createElement('img');
+      qr.className='netDQr';
+      qr.alt='QR';
+      qr.loading='lazy';
+      qr.src='/api/qrcode?text='+encodeURIComponent(item.url);
+      const info=document.createElement('div');
+      const url=document.createElement('div');
+      url.className='netDUrl';
+      url.textContent=item.url;
+      const ip=document.createElement('span');
+      ip.className='netDIp';
+      ip.textContent=item.ip;
+      info.appendChild(url);
+      info.appendChild(ip);
+      const copy=document.createElement('button');
+      copy.className='netCopyBtn';
+      copy.type='button';
+      copy.dataset.copyUrl=item.url;
+      copy.textContent='کپی';
+      el.appendChild(qr);
+      el.appendChild(info);
+      el.appendChild(copy);
       frag.appendChild(el);
     }
     netDropContent.appendChild(frag);

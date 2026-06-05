@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using System.Drawing;
+using QRCoder;
 
 const int Port = 8887;
 var appDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "FileShare");
@@ -269,6 +270,15 @@ var networkBox = new ListBox
     Margin = new Padding(0, 0, 0, 10)
 };
 
+var networkQr = new PictureBox
+{
+    Dock = DockStyle.Bottom,
+    Height = 116,
+    BackColor = Color.White,
+    SizeMode = PictureBoxSizeMode.Zoom,
+    Margin = new Padding(0, 0, 0, 10)
+};
+
 // دکمه‌ها - کارت چپ
 var btnOpen    = Btn("باز کردن", cBlueBg, cBlue, 86);
 var btnCopy    = Btn("کپی", cGrayBg, cSub, 62);
@@ -298,6 +308,7 @@ lcBtnRow.Controls.Add(btnRefresh, 2, 0);
 
 // چیدمان کارت چپ (از پایین به بالا برای Dock)
 leftInner.Controls.Add(networkBox);     // Fill - وسط
+leftInner.Controls.Add(networkQr);
 leftInner.Controls.Add(lcLocalChip);    // Top
 leftInner.Controls.Add(lcLocalHead);    // Top
 leftInner.Controls.Add(lcTitle);        // Top
@@ -437,6 +448,8 @@ canvas.Controls.Add(headerWrap);  // Top — بعد، روی grid می‌نشی�
 void RefreshNetwork()
 {
     networkBox.Items.Clear();
+    networkQr.Image?.Dispose();
+    networkQr.Image = null;
     if (!networkSharingEnabled)
     {
         networkBox.Items.Add("Network sharing needs Windows permission. Restart app after allowing access.");
@@ -451,6 +464,24 @@ void RefreshNetwork()
     }
     foreach (var url in urls)
         networkBox.Items.Add(url);
+    networkBox.SelectedIndex = 0;
+    RefreshNetworkQr();
+}
+
+void RefreshNetworkQr()
+{
+    var selected = networkBox.SelectedItem?.ToString();
+    if (string.IsNullOrWhiteSpace(selected) || !selected.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+    {
+        networkQr.Image?.Dispose();
+        networkQr.Image = null;
+        return;
+    }
+
+    using var memory = new MemoryStream(CreateQrPngBytes(selected, 5));
+    var bitmap = new Bitmap(memory);
+    networkQr.Image?.Dispose();
+    networkQr.Image = new Bitmap(bitmap);
 }
 
 void RefreshSharedFolderUi()
@@ -662,6 +693,7 @@ btnRefresh.Click += (_, _) =>
         MessageBox.Show(form, $"Could not refresh network addresses:\r\n{error.Message}", "FileShare", MessageBoxButtons.OK, MessageBoxIcon.Warning);
     }
 };
+networkBox.SelectedIndexChanged += (_, _) => RefreshNetworkQr();
 btnSharedFolder.Click += (_, _) =>
 {
     try
@@ -737,6 +769,19 @@ async Task HandleRequestAsync(HttpListenerContext context)
                     ? GetLocalIps().Select(ip => new { ip, url = $"http://{ip}:{Port}" })
                     : []
             });
+            return;
+        }
+
+        if (req.HttpMethod == "GET" && path == "/api/qrcode")
+        {
+            var text = req.QueryString["text"] ?? localUrl;
+            if (text.Length > 512)
+            {
+                await SendTextAsync(res, 400, "QR text is too long");
+                return;
+            }
+
+            await SendQrPngAsync(res, text);
             return;
         }
 
@@ -952,6 +997,23 @@ async Task SendJsonAsync(HttpListenerResponse res, object value)
     res.ContentType = "application/json; charset=utf-8";
     res.ContentLength64 = bytes.Length;
     await res.OutputStream.WriteAsync(bytes);
+}
+
+async Task SendQrPngAsync(HttpListenerResponse res, string text)
+{
+    var bytes = CreateQrPngBytes(text, 8);
+    res.StatusCode = 200;
+    res.ContentType = "image/png";
+    res.ContentLength64 = bytes.Length;
+    await res.OutputStream.WriteAsync(bytes);
+}
+
+byte[] CreateQrPngBytes(string text, int pixelsPerModule)
+{
+    using var generator = new QRCodeGenerator();
+    using var data = generator.CreateQrCode(text, QRCodeGenerator.ECCLevel.Q);
+    using var qr = new PngByteQRCode(data);
+    return qr.GetGraphic(pixelsPerModule);
 }
 
 async Task SaveMultipartUploadAsync(HttpListenerRequest req)
