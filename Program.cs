@@ -9,8 +9,15 @@ using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using System.Drawing;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
 using QRCoder;
 
+internal static class Program
+{
+    [STAThread]
+    private static void Main()
+    {
 const int Port = 8887;
 var appDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "FileShare");
 var uploadDir = Path.Combine(appDir, "uploads");
@@ -149,11 +156,11 @@ Panel Divider(string label)
 var form = new Form
 {
     Text = "FileShare v1.3",
-    Size = new Size(580, 545),
-    MinimumSize = new Size(560, 520),
+    Size = new Size(1180, 720),
+    MinimumSize = new Size(940, 600),
     FormBorderStyle = FormBorderStyle.Sizable,
     MaximizeBox = true,
-    AutoScroll = true,
+    AutoScroll = false,
     StartPosition = FormStartPosition.CenterScreen,
     BackColor = cBg,
     ForeColor = cText,
@@ -180,9 +187,24 @@ var canvas = new Panel
 {
     Dock = DockStyle.Fill,
     BackColor = cBg,
-    Padding = new Padding(20, 18, 20, 28)
+    Padding = new Padding(14, 14, 14, 18),
+    AutoScroll = true
 };
-form.Controls.Add(canvas);
+
+var appSplit = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 2,
+    RowCount = 1,
+    BackColor = cBg,
+    Padding = new Padding(0),
+    Margin = new Padding(0)
+};
+appSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 380));
+appSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+appSplit.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+form.Controls.Add(appSplit);
+appSplit.Controls.Add(canvas, 0, 0);
 
 // ── هدر ──────────────────────────────────────────────────
 var lblTitle = new Label
@@ -219,16 +241,16 @@ canvas.Controls.Add(badgeLive);
 // از TableLayoutPanel فقط یک‌بار برای تقسیم دو ستون استفاده می‌کنیم
 var grid = new TableLayoutPanel
 {
-    Dock = DockStyle.Top,
-    ColumnCount = 2, RowCount = 1,
+    Dock = DockStyle.Fill,
+    ColumnCount = 1, RowCount = 2,
     BackColor = Color.Transparent,
     Margin = new Padding(0),
     Padding = new Padding(0),
     Height = 330
 };
-grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 52));
-grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48));
-grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+grid.RowStyles.Add(new RowStyle(SizeType.Percent, 54));
+grid.RowStyles.Add(new RowStyle(SizeType.Percent, 46));
 
 // ── کارت چپ (اتصال) ──────────────────────────────────────
 var leftCard = new Panel
@@ -236,7 +258,7 @@ var leftCard = new Panel
     Dock = DockStyle.Fill,
     BackColor = cCard,
     Padding = new Padding(16, 14, 16, 14),
-    Margin = new Padding(0, 0, 8, 0)
+    Margin = new Padding(0, 0, 0, 10)
 };
 leftCard.Paint += (_, e) =>
 {
@@ -417,7 +439,7 @@ rightCard.Controls.Add(sharedCard);
 rightCard.Controls.Add(btnExit);
 
 grid.Controls.Add(leftCard, 0, 0);
-grid.Controls.Add(rightCard, 1, 0);
+grid.Controls.Add(rightCard, 0, 1);
 
 // ── هدر + grid را به canvas اضافه می‌کنیم ───────────────
 // هدر با Panel محاسبه‌شده به بالای canvas می‌رود
@@ -444,6 +466,78 @@ headerWrap.Controls.Add(badgeLive);
 
 canvas.Controls.Add(grid);        // Fill — باید اول اضافه بشه
 canvas.Controls.Add(headerWrap);  // Top — بعد، روی grid می‌نشینه
+
+var browserShell = new Panel
+{
+    Dock = DockStyle.Fill,
+    BackColor = cBg,
+    Padding = new Padding(0, 14, 14, 18),
+    Margin = new Padding(0)
+};
+var browserCard = new Panel
+{
+    Dock = DockStyle.Fill,
+    BackColor = cCard,
+    Padding = new Padding(1),
+    Margin = new Padding(0)
+};
+browserCard.Paint += (_, e) =>
+{
+    using var pen = new Pen(cLine);
+    e.Graphics.DrawRectangle(pen, 0, 0, browserCard.Width - 1, browserCard.Height - 1);
+};
+var embeddedBrowser = new WebView2
+{
+    Dock = DockStyle.Fill,
+    DefaultBackgroundColor = cBg
+};
+var browserFallback = new Label
+{
+    Dock = DockStyle.Fill,
+    TextAlign = ContentAlignment.MiddleCenter,
+    ForeColor = cSub,
+    BackColor = cCard,
+    Font = new Font("Segoe UI", 10F),
+    Text = "Loading FileShare..."
+};
+browserCard.Controls.Add(embeddedBrowser);
+browserCard.Controls.Add(browserFallback);
+browserShell.Controls.Add(browserCard);
+appSplit.Controls.Add(browserShell, 1, 0);
+
+async void LoadEmbeddedBrowser()
+{
+    try
+    {
+        var userDataFolder = Path.Combine(appDir, "webview2");
+        Directory.CreateDirectory(userDataFolder);
+        var environment = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+        await embeddedBrowser.EnsureCoreWebView2Async(environment);
+        embeddedBrowser.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+        embeddedBrowser.CoreWebView2.Settings.AreDevToolsEnabled = false;
+        embeddedBrowser.CoreWebView2.NavigationCompleted += (_, args) =>
+        {
+            if (args.IsSuccess)
+            {
+                browserFallback.Visible = false;
+                statusBar.Text = "  FileShare web page is open inside the app.";
+            }
+            else
+            {
+                browserFallback.Visible = true;
+                browserFallback.Text = $"Could not load {localUrl}\r\nError: {args.WebErrorStatus}\r\nUse Open to show it in the browser.";
+                statusBar.Text = "  Internal page failed to load. Use Open.";
+            }
+        };
+        embeddedBrowser.Source = new Uri(localUrl);
+    }
+    catch (Exception error)
+    {
+        embeddedBrowser.Visible = false;
+        browserFallback.Text = "WebView2 Runtime is not available on this Windows installation.\r\nThe FileShare page is still running locally; use Open to show it in the browser.\r\n\r\n" + error.Message;
+        statusBar.Text = "  Internal browser is unavailable. Use Open.";
+    }
+}
 
 void RefreshNetwork()
 {
@@ -736,6 +830,7 @@ btnExit.Click += (_, _) =>
 form.FormClosing += (_, _) => Shutdown();
 
 RefreshNetwork();
+LoadEmbeddedBrowser();
 
 Application.Run(form);
 
@@ -1186,7 +1281,10 @@ int LastIndexOf(byte[] source, byte[] pattern)
     return -1;
 }
 
-record MessageInput(string? Text, string? From);
-record DeleteInput(long[] Ids);
-record FileItem(string Name, long Size, DateTime Modified, string Source, bool CanDelete);
-record MessageItem(long Id, string From, string Text, DateTimeOffset Created, DateTimeOffset? Edited);
+    }
+
+    record MessageInput(string? Text, string? From);
+    record DeleteInput(long[] Ids);
+    record FileItem(string Name, long Size, DateTime Modified, string Source, bool CanDelete);
+    record MessageItem(long Id, string From, string Text, DateTimeOffset Created, DateTimeOffset? Edited);
+}
