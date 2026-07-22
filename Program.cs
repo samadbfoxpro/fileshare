@@ -25,6 +25,10 @@ namespace FileShare
 
             httpServer.StartAcceptLoop();
 
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+            Application.ThreadException += (s, e) => { Console.WriteLine($"[ThreadException] {e.Exception}"); };
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => { Console.WriteLine($"[UnhandledException] {e.ExceptionObject}"); };
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm(httpServer, fileService));

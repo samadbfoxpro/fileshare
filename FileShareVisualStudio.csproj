@@ -14,6 +14,7 @@
   <ItemGroup>
     <EmbeddedResource Include="wwwroot\index.html" LogicalName="wwwroot.index.html" />
     <EmbeddedResource Include="wwwroot\icon.ico" LogicalName="wwwroot.icon.ico" />
+    <EmbeddedResource Include="wwwroot\mpegts.min.js" LogicalName="wwwroot.mpegts.min.js" />
   </ItemGroup>
 
   <ItemGroup>

@@ -104,6 +104,13 @@ namespace FileShare
                     return;
                 }
 
+                if (req.HttpMethod == "GET" && path == "/mpegts.min.js")
+                {
+                    res.AddHeader("Cache-Control", "public, max-age=86400");
+                    await SendResourceAsync(res, "wwwroot.mpegts.min.js", "application/javascript; charset=utf-8");
+                    return;
+                }
+
                 if (req.HttpMethod == "GET" && path == "/api/network")
                 {
                     await SendJsonAsync(res, new
@@ -140,9 +147,11 @@ namespace FileShare
                     return;
                 }
 
-                if (req.HttpMethod == "GET" && path.StartsWith("/stream/", StringComparison.Ordinal))
+                if ((req.HttpMethod == "GET" || req.HttpMethod == "HEAD") && path.StartsWith("/stream/", StringComparison.Ordinal))
                 {
-                    var request = _fileService.ParseFileRequest(path["/stream/".Length..]);
+                    var rawSubPath = path["/stream/".Length..];
+                    var decodedSubPath = System.Net.WebUtility.UrlDecode(rawSubPath);
+                    var request = _fileService.ParseFileRequest(decodedSubPath);
                     var filePath = _fileService.GetFilePath(request.RelativePath, request.Source);
                     if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                     {
@@ -151,7 +160,8 @@ namespace FileShare
                     }
 
                     var ext = Path.GetExtension(filePath).ToLowerInvariant();
-                    var contentType = ext switch
+                    bool isMpegTs = ext is ".ts" or ".mts" or ".m2ts" || (ext == ".mp4" && IsMpegTsFile(filePath));
+                    var contentType = isMpegTs ? "video/mp2t" : ext switch
                     {
                         ".mp4" => "video/mp4",
                         ".webm" => "video/webm",
@@ -166,9 +176,18 @@ namespace FileShare
 
                     res.ContentType = contentType;
                     res.AddHeader("Accept-Ranges", "bytes");
+                    if (isMpegTs) res.AddHeader("X-Media-Container", "mpegts");
 
                     var fileInfo = new FileInfo(filePath);
                     long totalLength = fileInfo.Length;
+
+                    if (req.HttpMethod == "HEAD")
+                    {
+                        res.StatusCode = 200;
+                        res.ContentLength64 = totalLength;
+                        return;
+                    }
+
                     var rangeHeader = req.Headers["Range"];
 
                     if (string.IsNullOrEmpty(rangeHeader) || !rangeHeader.StartsWith("bytes="))
@@ -199,24 +218,33 @@ namespace FileShare
                     await using var stream = File.OpenRead(filePath);
                     stream.Seek(start, SeekOrigin.Begin);
 
-                    byte[] buffer = new byte[64 * 1024];
-                    long bytesRemaining = contentLength;
-
-                    while (bytesRemaining > 0)
+                    try
                     {
-                        int bytesToRead = (int)Math.Min(buffer.Length, bytesRemaining);
-                        int bytesRead = await stream.ReadAsync(buffer.AsMemory(0, bytesToRead));
-                        if (bytesRead == 0) break;
+                        byte[] buffer = new byte[64 * 1024];
+                        long bytesRemaining = contentLength;
 
-                        await res.OutputStream.WriteAsync(buffer.AsMemory(0, bytesRead));
-                        bytesRemaining -= bytesRead;
+                        while (bytesRemaining > 0)
+                        {
+                            int bytesToRead = (int)Math.Min(buffer.Length, bytesRemaining);
+                            int bytesRead = await stream.ReadAsync(buffer.AsMemory(0, bytesToRead));
+                            if (bytesRead == 0) break;
+
+                            await res.OutputStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                            bytesRemaining -= bytesRead;
+                        }
+                    }
+                    catch (Exception ex) when (ex is HttpListenerException or System.IO.IOException or ObjectDisposedException)
+                    {
+                        // Client closed stream / connection aborted — safe ignore
                     }
                     return;
                 }
 
                 if ((req.HttpMethod == "GET" || req.HttpMethod == "HEAD") && path.StartsWith("/download/", StringComparison.Ordinal))
                 {
-                    var request = _fileService.ParseFileRequest(path["/download/".Length..]);
+                    var rawSubPath = path["/download/".Length..];
+                    var decodedSubPath = System.Net.WebUtility.UrlDecode(rawSubPath);
+                    var request = _fileService.ParseFileRequest(decodedSubPath);
                     var filePath = _fileService.GetFilePath(request.RelativePath, request.Source);
                     if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                     {
@@ -416,7 +444,14 @@ namespace FileShare
             }
             finally
             {
-                res.OutputStream.Close();
+                try
+                {
+                    res.OutputStream.Close();
+                }
+                catch
+                {
+                    // Ignore disconnect on close
+                }
             }
         }
 
@@ -479,6 +514,7 @@ namespace FileShare
                 throw new InvalidOperationException("No boundary");
             }
 
+            var subFolder = req.QueryString["folder"] ?? string.Empty;
             using var memory = new MemoryStream();
             await req.InputStream.CopyToAsync(memory);
             var body = memory.ToArray();
@@ -495,6 +531,10 @@ namespace FileShare
                 throw new InvalidOperationException("No file");
             }
 
+            var rawFileName = fileMatch.Groups[1].Value;
+            var relPathMatch = Regex.Match(headers, "name=\"relPath\"\\r\\n\\r\\n([^\\r\\n]*)");
+            var relPath = relPathMatch.Success ? relPathMatch.Groups[1].Value.Trim() : string.Empty;
+
             var start = headerEnd + 4;
             var ending = Encoding.UTF8.GetBytes($"\r\n--{match.Groups[1].Value}");
             var end = LastIndexOf(body, ending);
@@ -503,7 +543,43 @@ namespace FileShare
                 throw new InvalidOperationException("Bad ending");
             }
 
-            var targetPath = _fileService.UniquePath(_fileService.SafeName(fileMatch.Groups[1].Value));
+            string targetDir = _fileService.UploadDir;
+            if (!string.IsNullOrWhiteSpace(subFolder))
+            {
+                var parsed = _fileService.ParseFileRequest(subFolder);
+                var folderPath = _fileService.GetFolderPath(parsed.RelativePath, parsed.Source);
+                if (!string.IsNullOrEmpty(folderPath))
+                {
+                    targetDir = folderPath;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(relPath))
+            {
+                var cleanRel = relPath.Replace('\\', '/').Trim('/');
+                var parts = cleanRel.Split('/');
+                if (parts.Length > 1)
+                {
+                    var subDirs = string.Join('/', parts.Take(parts.Length - 1));
+                    targetDir = Path.Combine(targetDir, subDirs.Replace('/', Path.DirectorySeparatorChar));
+                }
+                rawFileName = parts.Last();
+            }
+
+            Directory.CreateDirectory(targetDir);
+            var safeName = _fileService.SafeName(rawFileName);
+            var targetPath = Path.Combine(targetDir, safeName);
+            
+            // Generate unique path if file already exists
+            var count = 1;
+            var baseName = Path.GetFileNameWithoutExtension(safeName);
+            var ext = Path.GetExtension(safeName);
+            while (File.Exists(targetPath))
+            {
+                targetPath = Path.Combine(targetDir, $"{baseName}-{count}{ext}");
+                count++;
+            }
+
             await File.WriteAllBytesAsync(targetPath, body[start..end]);
         }
 
@@ -539,6 +615,23 @@ namespace FileShare
                 }
             }
             return -1;
+        }
+
+        private static bool IsMpegTsFile(string path)
+        {
+            try
+            {
+                using var fs = File.OpenRead(path);
+                var header = new byte[564]; // Check first 3 TS packets (188 * 3)
+                var read = fs.Read(header, 0, header.Length);
+                if (read < 188) return false;
+                // TS sync byte is 0x47 at index 0, 188, 376
+                return header[0] == 0x47 && (read < 189 || header[188] == 0x47);
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

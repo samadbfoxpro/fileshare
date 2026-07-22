@@ -96,10 +96,23 @@ namespace FileShare
             _networkBox = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = cField, ForeColor = cText,
+                DrawMode = DrawMode.OwnerDrawFixed,
+                BackColor = cField, ForeColor = cBlue,
                 Font = new Font("Consolas", 9.5F, FontStyle.Bold),
                 Width = 260, Height = 30, FlatStyle = FlatStyle.Flat,
                 Location = new Point(14, 40)
+            };
+            _networkBox.DrawItem += (sender, e) =>
+            {
+                if (e.Index < 0) return;
+                e.DrawBackground();
+                bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+                using var bgBrush = new SolidBrush(selected ? cBlueBg : cField);
+                using var textBrush = new SolidBrush(selected ? cText : cBlue);
+                e.Graphics.FillRectangle(bgBrush, e.Bounds);
+                var text = _networkBox.Items[e.Index]?.ToString() ?? "";
+                e.Graphics.DrawString(text, e.Font ?? _networkBox.Font, textBrush, e.Bounds.X + 4, e.Bounds.Y + 4);
+                e.DrawFocusRectangle();
             };
 
             var btnCopy = Btn("📋 کپی", cGrayBg, cText, 60, 30);

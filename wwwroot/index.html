@@ -6,6 +6,7 @@
   <title>FileShare - انتقال فایل و پیام</title>
   <link rel="icon" href="/icon.ico" sizes="any">
   <link rel="shortcut icon" href="/icon.ico">
+  <script src="/mpegts.min.js"></script>
   <style>
     :root{--bg:#0a0c10;--bg2:#10131a;--bg3:#161b26;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);--text:#e8eaf0;--text2:#8891a6;--text3:#5a6275;--accent:#4f9cf9;--accent2:#7b5ffc;--ag:rgba(79,156,249,.18);--a2g:rgba(123,95,252,.15);--red:#ff5e7e;--green:#4ade80;--shs:0 4px 20px rgba(0,0,0,.35);--r:14px;--rs:8px;--tr:.3s cubic-bezier(.4,0,.2,1)}
     [data-theme="light"]{--bg:#f0f2f7;--bg2:#fff;--bg3:#f7f8fc;--border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.13);--text:#111827;--text2:#5a6275;--text3:#9099aa;--accent:#1769d2;--accent2:#6040cc;--ag:rgba(23,105,210,.12);--a2g:rgba(96,64,204,.10);--shs:0 4px 20px rgba(0,0,0,.08)}
@@ -194,10 +195,32 @@
   <!-- FILES PANEL -->
   <section class="tabPanel active" id="filesPanel" role="tabpanel">
     <div class="card">
-      <div class="ch"><div class="ci b">⬆</div><h2>آپلود فایل</h2></div>
-      <div class="uz"><input id="fileInput" type="file" name="file"><span class="uzi">📂</span><div class="uzt">فایل را اینجا بکش یا کلیک کن</div><div class="uzs" id="selectedName"></div></div>
-      <button class="btn bp" id="uploadBtn" disabled>آپلود فایل</button>
-      <div class="pw"><div class="pbb"><div class="pbf" id="progressFill"></div></div><div class="pl"><span id="message">فایل را انتخاب کن و آپلود بزن.</span><span id="progressPct"></span></div></div>
+      <div class="ch" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="ci b">⬆</div>
+          <h2>آپلود فایل و پوشه</h2>
+        </div>
+        <!-- Mode Switcher Buttons -->
+        <div style="display:flex;gap:6px;background:var(--bg3);padding:3px;border-radius:var(--rs);border:1px solid var(--border);">
+          <button id="modeFileBtn" class="hTabBtn active" type="button">📄 انتخاب فایل (چندتا)</button>
+          <button id="modeFolderBtn" class="hTabBtn" type="button">📁 انتخاب پوشه کامل</button>
+        </div>
+      </div>
+
+      <!-- Dropzone -->
+      <div class="uz" id="dropZone">
+        <input id="fileInput" type="file" multiple style="display:none;">
+        <input id="folderInput" type="file" webkitdirectory directory multiple style="display:none;">
+        <span class="uzi" id="dropIcon">☁️</span>
+        <div class="uzt" id="dropText">فایل‌ها یا پوشه را اینجا رها کنید یا کلیک کنید</div>
+        <div class="uzs" id="selectedName" style="color:var(--text);font-weight:bold;margin-top:6px;"></div>
+      </div>
+
+      <button class="btn bp" id="uploadBtn" disabled>شروع آپلود</button>
+      <div class="pw">
+        <div class="pbb"><div class="pbf" id="progressFill"></div></div>
+        <div class="pl"><span id="message">فایل یا پوشه موردنظر را انتخاب کنید.</span><span id="progressPct"></span></div>
+      </div>
     </div>
     <div class="card">
       <div class="ch" style="justify-content:space-between;flex-wrap:wrap;">
@@ -219,6 +242,9 @@
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-shrink:0;">
         <h3 id="mediaTitle" style="font-size:14px;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:right;">پیش‌نمایش آنلاین</h3>
         <button class="btn bd br" style="min-height:32px;padding:4px 14px;flex-shrink:0;" onclick="closeMediaPlayer()">✕ بستن</button>
+      </div>
+      <div id="mediaErrorNotice" style="display:none;background:rgba(255,94,126,.12);border:1px solid rgba(255,94,126,.3);color:var(--red);border-radius:var(--rs);padding:8px 12px;font-size:12px;align-items:center;justify-content:space-between;gap:8px;">
+        <span>⚠️ مرورگر از کدک این ویدیو (مثل H.265/MKV) پشتیبانی نمی‌کند. لطفاً فایل را دانلود کنید.</span>
       </div>
       <div style="width:100%;flex:1;background:#000;border-radius:var(--rs);overflow:hidden;display:flex;justify-content:center;align-items:center;min-height:0;">
         <video id="mediaVideo" controls style="width:100%;max-width:100%;max-height:75vh;object-fit:contain;display:none;outline:none;"></video>
@@ -677,11 +703,11 @@
   }
 
   // ===== MEDIA PLAYER MODAL =====
-  const mediaModal = document.getElementById('mediaModal'), mediaTitle = document.getElementById('mediaTitle'), mediaVideo = document.getElementById('mediaVideo'), mediaAudio = document.getElementById('mediaAudio');
+  const mediaModal = document.getElementById('mediaModal'), mediaTitle = document.getElementById('mediaTitle'), mediaVideo = document.getElementById('mediaVideo'), mediaAudio = document.getElementById('mediaAudio'), mediaErrorNotice = document.getElementById('mediaErrorNotice');
 
   function isMediaFile(fileName){
     const ext = (fileName.split('.').pop() || '').toLowerCase();
-    return ['mp4','webm','mkv','mov','avi','mp3','wav','ogg'].includes(ext);
+    return ['mp4','webm','mkv','mov','avi','ts','mts','m2ts','mp3','wav','ogg'].includes(ext);
   }
 
   function isAudioFile(fileName){
@@ -689,29 +715,75 @@
     return ['mp3','wav','ogg'].includes(ext);
   }
 
-  function playMedia(path, fileName){
-    const streamUrl = `/stream/${encodeURIComponent(path)}`;
+  let _mpegtsPlayer = null;
+  function destroyMpegts(){
+    if(_mpegtsPlayer){ try{ _mpegtsPlayer.destroy(); }catch(e){} _mpegtsPlayer = null; }
+  }
+
+  async function playMediaRaw(encodedPath, fileName){
+    const absoluteStreamUrl = window.location.origin + `/stream/${encodedPath}`;
     mediaTitle.textContent = '🎬 ' + fileName;
+
+    destroyMpegts();
     mediaVideo.pause(); mediaAudio.pause();
     mediaVideo.src = ''; mediaAudio.src = '';
+    mediaErrorNotice.style.display = 'none';
+    mediaVideo.onerror = null; // disable until we know the player type
+
+    mediaModal.style.display = 'flex';
 
     if(isAudioFile(fileName)){
       mediaVideo.style.display = 'none';
       mediaAudio.style.display = 'block';
-      mediaAudio.src = streamUrl;
-      mediaAudio.play();
-    } else {
-      mediaAudio.style.display = 'none';
-      mediaVideo.style.display = 'block';
-      mediaVideo.src = streamUrl;
-      mediaVideo.play();
+      mediaAudio.src = absoluteStreamUrl;
+      mediaAudio.play().catch(()=>{});
+      return;
     }
-    mediaModal.style.display = 'flex';
+
+    mediaAudio.style.display = 'none';
+    mediaVideo.style.display = 'block';
+
+    // HEAD request — detect MPEG-TS via X-Media-Container or Content-Type
+    let isMpegTs = false;
+    try{
+      const head = await fetch(absoluteStreamUrl, {method:'HEAD'});
+      const container = head.headers.get('x-media-container') || '';
+      const ct = head.headers.get('content-type') || '';
+      isMpegTs = container === 'mpegts' || ct.includes('mp2t');
+    }catch(e){}
+
+    if(isMpegTs && typeof mpegts !== 'undefined' && mpegts.isSupported()){
+      _mpegtsPlayer = mpegts.createPlayer({
+        type: 'mpegts',
+        url: absoluteStreamUrl,
+        isLive: false
+      },{
+        enableWorker: true,
+        lazyLoadMaxDuration: 3 * 60,
+        seekType: 'range',
+        stashInitialSize: 128 * 1024
+      });
+      _mpegtsPlayer.on(mpegts.Events.ERROR, () => {
+        mediaErrorNotice.style.display = 'flex';
+      });
+      _mpegtsPlayer.attachMediaElement(mediaVideo);
+      _mpegtsPlayer.load();
+      _mpegtsPlayer.play().catch(()=>{});
+    } else {
+      mediaVideo.onerror = () => { mediaErrorNotice.style.display = 'flex'; };
+      mediaVideo.src = absoluteStreamUrl;
+      mediaVideo.play().catch(() => {
+        mediaErrorNotice.style.display = 'flex';
+      });
+    }
   }
 
+
   function closeMediaPlayer(){
+    destroyMpegts();
     mediaVideo.pause(); mediaAudio.pause();
     mediaVideo.src = ''; mediaAudio.src = '';
+    mediaErrorNotice.style.display = 'none';
     mediaModal.style.display = 'none';
   }
 
@@ -745,8 +817,9 @@
           row.innerHTML=`<div><div class="fn">📁 ${item.name}</div><div class="fm"><span>پوشه</span>${shared?'<span>اشتراکی</span>':''}</div></div><div class="fa"><button class="btn bd" type="button">باز کردن 📂</button></div>`;
         } else {
           const dl=`/download/${encodeURIComponent(item.path)}`;
+          const safePathAttr = item.path.split('/').map(encodeURIComponent).join('/');
           const canPlay = isMediaFile(item.name);
-          row.innerHTML=`<div><div class="fn">${canPlay?'🎬':'📄'} ${item.name}</div><div class="fm"><span>💾 ${fmtBytes(item.size)}</span><span>🕐 ${fmtDate(item.modified)}</span>${shared?'<span>اشتراکی</span>':''}</div></div><div class="fa">${canPlay?`<button class="btn bd" type="button" data-play="${encodeURIComponent(item.path)}" data-name="${encodeURIComponent(item.name)}">پخش ⏯</button>`:''}<a class="btn bd" href="${dl}">دانلود</a>${item.canDelete?`<button class="btn bd br" type="button" data-delete="${encodeURIComponent(item.path)}">حذف</button>`:''}</div>`;
+          row.innerHTML=`<div><div class="fn">${canPlay?'🎬':'📄'} ${item.name}</div><div class="fm"><span>💾 ${fmtBytes(item.size)}</span><span>🕐 ${fmtDate(item.modified)}</span>${shared?'<span>اشتراکی</span>':''}</div></div><div class="fa">${canPlay?`<button class="btn bd" type="button" data-play="${safePathAttr}" data-name="${encodeURIComponent(item.name)}">پخش ⏯</button>`:''}<a class="btn bd" href="${dl}">دانلود</a>${item.canDelete?`<button class="btn bd br" type="button" data-delete="${safePathAttr}">حذف</button>`:''}</div>`;
         }
         frag.appendChild(row);
       }
@@ -760,9 +833,9 @@
     const playBtn = event.target.closest('[data-play]');
     if(playBtn){
       event.stopPropagation();
-      const path = decodeURIComponent(playBtn.dataset.play);
+      const path = playBtn.dataset.play;
       const name = decodeURIComponent(playBtn.dataset.name);
-      playMedia(path, name);
+      playMediaRaw(path, name);
       return;
     }
 
@@ -786,14 +859,213 @@
     }
   });
 
-  uploadBtn.addEventListener('click',()=>{
-    const file=fileInput.files[0];if(!file)return;
-    const data=new FormData();data.append('file',file);
-    const xhr=new XMLHttpRequest();xhr.open('POST','/upload');uploadBtn.disabled=true;progressFill.style.width='0%';progressPct.textContent='';setMsg('در حال آپلود...');
-    xhr.upload.onprogress=e=>{if(e.lengthComputable){const p=Math.round((e.loaded/e.total)*100);progressFill.style.width=p+'%';progressPct.textContent=p+'%'}};
-    xhr.onload=async()=>{uploadBtn.disabled=false;if(xhr.status>=200&&xhr.status<300){progressFill.style.width='100%';progressPct.textContent='100%';fileInput.value='';selectedName.textContent='';setMsg('آپلود با موفقیت انجام شد.','ok');await loadFiles();setTimeout(()=>{progressFill.style.width='0%';progressPct.textContent=''},2500)}else setMsg('آپلود انجام نشد.','err')};
-    xhr.onerror=()=>{uploadBtn.disabled=false;setMsg('ارتباط با سرور قطع شد.','err')};
-    xhr.send(data);
+  // ===== ADVANCED UPLOAD SYSTEM (Multi-file & Folder support) =====
+  const dropZone = document.getElementById('dropZone'),
+        folderInput = document.getElementById('folderInput'),
+        modeFileBtn = document.getElementById('modeFileBtn'),
+        modeFolderBtn = document.getElementById('modeFolderBtn'),
+        dropIcon = document.getElementById('dropIcon'),
+        dropText = document.getElementById('dropText');
+
+  let selectedFilesQueue = [];
+  let currentUploadMode = 'file'; // 'file' or 'folder'
+
+  modeFileBtn.addEventListener('click', () => {
+    currentUploadMode = 'file';
+    modeFileBtn.classList.add('active');
+    modeFolderBtn.classList.remove('active');
+    dropIcon.textContent = '☁️';
+    dropText.textContent = 'فایل‌ها را اینجا رها کنید یا کلیک کنید';
+    clearSelectedFiles();
+  });
+
+  modeFolderBtn.addEventListener('click', () => {
+    currentUploadMode = 'folder';
+    modeFolderBtn.classList.add('active');
+    modeFileBtn.classList.remove('active');
+    dropIcon.textContent = '📁';
+    dropText.textContent = 'یک پوشه کامل را انتخاب یا کشیده و اینجا رها کنید';
+    clearSelectedFiles();
+  });
+
+  dropZone.addEventListener('click', () => {
+    if(currentUploadMode === 'folder'){
+      folderInput.click();
+    } else {
+      fileInput.click();
+    }
+  });
+
+  function clearSelectedFiles(){
+    fileInput.value = '';
+    folderInput.value = '';
+    selectedFilesQueue = [];
+    selectedName.textContent = '';
+    uploadBtn.disabled = true;
+    progressFill.style.width = '0%';
+    progressPct.textContent = '';
+    setMsg('فایل یا پوشه موردنظر را انتخاب کنید.');
+  }
+
+  function handleFilesSelection(filesList){
+    selectedFilesQueue = Array.from(filesList);
+    if(!selectedFilesQueue.length){
+      clearSelectedFiles();
+      return;
+    }
+
+    const totalSize = selectedFilesQueue.reduce((acc, f) => acc + f.size, 0);
+    if(selectedFilesQueue.length === 1 && !selectedFilesQueue[0].webkitRelativePath){
+      selectedName.textContent = `📄 ${selectedFilesQueue[0].name} (${fmtBytes(totalSize)})`;
+    } else if(currentUploadMode === 'folder' || selectedFilesQueue[0].webkitRelativePath){
+      const folderName = selectedFilesQueue[0].webkitRelativePath ? selectedFilesQueue[0].webkitRelativePath.split('/')[0] : 'پوشه';
+      selectedName.textContent = `📁 ${folderName} · ${selectedFilesQueue.length} فایل (${fmtBytes(totalSize)})`;
+    } else {
+      selectedName.textContent = `📦 ${selectedFilesQueue.length} فایل انتخاب شده (${fmtBytes(totalSize)})`;
+    }
+
+    uploadBtn.disabled = false;
+    setMsg('برای شروع کلیک کنید.', 'ok');
+  }
+
+  fileInput.addEventListener('change', () => handleFilesSelection(fileInput.files));
+  folderInput.addEventListener('change', () => handleFilesSelection(folderInput.files));
+
+  // Drag & Drop
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, e => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+  });
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => dropZone.style.borderColor = 'var(--accent)');
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => dropZone.style.borderColor = '');
+  });
+
+  dropZone.addEventListener('drop', async e => {
+    const items = e.dataTransfer.items;
+    if(items && items.length){
+      const files = [];
+      const queue = [];
+      for(let i = 0; i < items.length; i++){
+        const item = items[i];
+        if(item.webkitGetAsEntry){
+          const entry = item.webkitGetAsEntry();
+          if(entry){
+            queue.push(traverseFileTree(entry));
+          }
+        } else if(item.kind === 'file'){
+          const file = item.getAsFile();
+          if(file) files.push(file);
+        }
+      }
+      if(queue.length){
+        const results = await Promise.all(queue);
+        const flattened = results.flat();
+        if(flattened.length){
+          handleFilesSelection(flattened);
+          return;
+        }
+      }
+      if(files.length){
+        handleFilesSelection(files);
+        return;
+      }
+    }
+    if(e.dataTransfer.files.length){
+      handleFilesSelection(e.dataTransfer.files);
+    }
+  });
+
+  function traverseFileTree(item, path = ''){
+    return new Promise(resolve => {
+      if(item.isFile){
+        item.file(file => {
+          Object.defineProperty(file, 'webkitRelativePath', {
+            value: path + file.name,
+            writable: false
+          });
+          resolve([file]);
+        });
+      } else if(item.isDirectory){
+        const dirReader = item.createReader();
+        dirReader.readEntries(async entries => {
+          const entryPromises = entries.map(entry => traverseFileTree(entry, path + item.name + '/'));
+          const entryResults = await Promise.all(entryPromises);
+          resolve(entryResults.flat());
+        });
+      } else {
+        resolve([]);
+      }
+    });
+  }
+
+  // Upload Process
+  uploadBtn.addEventListener('click', async () => {
+    if(!selectedFilesQueue.length) return;
+
+    uploadBtn.disabled = true;
+    const totalFiles = selectedFilesQueue.length;
+    const totalBytes = selectedFilesQueue.reduce((sum, f) => sum + f.size, 0);
+    let uploadedBytesOverall = 0;
+
+    progressFill.style.width = '0%';
+    progressPct.textContent = '0%';
+
+    for(let i = 0; i < totalFiles; i++){
+      const file = selectedFilesQueue[i];
+      const relPath = file.webkitRelativePath || file.name;
+      setMsg(`در حال آپلود (${i + 1} از ${totalFiles}): ${file.name}`);
+
+      await new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('file', file, file.name);
+        formData.append('relPath', relPath);
+
+        const targetFolderParam = currentFolderPath ? `?folder=${encodeURIComponent(currentFolderPath)}` : '';
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/upload' + targetFolderParam);
+
+        let previousFileLoaded = 0;
+        xhr.upload.onprogress = e => {
+          if(e.lengthComputable){
+            const delta = e.loaded - previousFileLoaded;
+            previousFileLoaded = e.loaded;
+            uploadedBytesOverall += delta;
+            const pct = Math.min(100, Math.round((uploadedBytesOverall / totalBytes) * 100));
+            progressFill.style.width = pct + '%';
+            progressPct.textContent = pct + '%';
+          }
+        };
+
+        xhr.onload = () => {
+          if(xhr.status >= 200 && xhr.status < 300){
+            resolve();
+          } else {
+            reject(new Error('Upload failed'));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.send(formData);
+      }).catch(err => {
+        console.error('File upload error:', err);
+      });
+    }
+
+    progressFill.style.width = '100%';
+    progressPct.textContent = '100%';
+    setMsg('🎉 آپلود تمام فایل‌ها با موفقیت انجام شد!', 'ok');
+    clearSelectedFiles();
+    await loadFiles();
+    setTimeout(() => {
+      progressFill.style.width = '0%';
+      progressPct.textContent = '';
+    }, 3000);
   });
 
   // Init
