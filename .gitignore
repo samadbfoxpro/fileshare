@@ -8,6 +8,8 @@ obj/
 
 # Build and publish output
 publish/
+dist/
+installer/Setup/Payload/
 *.pdb
 
 # Local Git helper scripts

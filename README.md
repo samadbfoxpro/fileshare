@@ -1,209 +1,141 @@
-# FileShare
+# FileShare v1.5
 
 ## فارسی
 
-**FileShare** یک برنامه سبک ویندوزی برای اشتراک‌گذاری فایل و پیام در شبکه محلی است. برنامه یک پنجره مدیریتی تمیز دارد و هم‌زمان یک پنل وب داخلی اجرا می‌کند تا دستگاه‌های دیگر داخل همان شبکه، مثل موبایل یا لپ‌تاپ، بتوانند از طریق مرورگر به فایل‌ها و پیام‌ها دسترسی داشته باشند.
+**FileShare** یک نرم‌افزار فوق‌العاده سبک، مدرن و پرسرعت برای ویندوز است که امکان اشتراک‌گذاری فایل، مرور پوشه‌ها، استریم آنلاین ویدیو و تبادل پیام متنی در شبکه محلی (LAN / Wi-Fi) را فراهم می‌کند.
 
-نسخه فعلی: **1.3**
+نسخه جدید: **1.5**
 
-### قابلیت‌های اصلی
+---
 
-- اجرای برنامه بدون نمایش ترمینال، با پنجره ویندوزی مستقل
-- پنل وب واکنش‌گرا با تم تاریک و روشن
-- نمایش آدرس‌های شبکه محلی برای اتصال دستگاه‌های دیگر
-- آپلود فایل از مرورگر دستگاه‌های دیگر به سیستم میزبان
-- دانلود فایل‌های آپلودشده از هر دستگاه داخل شبکه
-- حذف فایل‌های آپلودشده از پنل وب
-- تنظیم یک پوشه اشتراکی جدا از پوشه آپلود
-- نمایش فایل‌های پوشه اشتراکی در پنل وب با برچسب «اشتراکی»
-- دانلود فایل‌های پوشه اشتراکی بدون نیاز به آپلود دوباره
-- جلوگیری از حذف فایل‌های پوشه اشتراکی از داخل پنل وب
-- تبادل پیام متنی بین دستگاه‌ها
-- کپی، ویرایش، حذف، انتخاب گروهی و دانلود پیام‌ها
-- خروجی تک‌فایل `exe` به صورت self-contained، بدون نیاز به نصب .NET روی سیستم مقصد
+### 🌟 قابلیت‌های جدید و کلیدی
 
-### ساختار ذخیره‌سازی
+- **📁 مرور هوشمند پوشه‌ها و زیرپوشه‌ها (Subdirectory Explorer):** پشتیبانی از اسکن کامل زیرپوشه‌های داخل پوشه اشتراکی و آپلودها به همراه نوار مسیر (Breadcrumb Navigation).
+- **⏯ پخش و استریم آنلاین ویدیو و صوت (Online Media Streaming):** مشاهده و پخش مستقیم فایل‌های ویدیویی (`MP4`, `MKV`, `WebM`, `MOV`, `AVI`) و صوتی بدون نیاز به دانلود کامل.
+- **🚀 دانلود چندپارچه و قابلیت Resume (پشتیبانی کامل از IDM و ADM):**
+  - پشتیبانی از درخواست‌های `Range Header` (`bytes=start-end`) و وضعیت HTTP `206 Partial Content`.
+  - پشتیبانی از درخواست‌های `HEAD` و کلیدهای `ETag` و `Last-Modified` جهت دانلود با حداکثر سرعت و قابلیت ادامه (Pause / Resume).
+- **📱 پلیر و وب‌پنل کاملاً واکنش‌گرا (Responsive Media Player):** کادربندی هوشمند و سازگار با ابعاد نمایشگر انواع گوشی‌ها، تبلت‌ها و کامپیوترها.
+- **🎛 کنترل‌پنل دسکتاپ مدرن و جمع‌وجور:**
+  - فرم ویندوزی شیک و کوچک جهت مدیریت سرور.
+  - نمایش بارکد QR جهت اتصال سریع موبایل با اسکن دوربین.
+  - دکمه کپی آدرس و باز کردن مستقیم در مرورگر پیش‌فرض سیستم.
+- **🏗 معماری کد جدید و تفکیک‌شده (Modular Clean Architecture):** کد برنامه به ماژول‌های مجزای `FileService.cs` ، `MessageService.cs` ، `HttpServer.cs` و `MainForm.cs` تفکیک شده است.
 
-به صورت پیش‌فرض داده‌های برنامه در مسیر زیر ذخیره می‌شوند:
+---
+
+### 📋 سایر امکانات
+
+- اجرای مستقل ویندوزی بدون نمایش پنجره CMD
+- تم تاریک و روشن شیک (Dark / Light Mode)
+- آپلود مستقیم فایل از مرورگر سایر دستگاه‌ها به سیستم میزبان
+- عدم امکان حذف فایل‌های پوشه اشتراکی از وب‌پنل جهت امنیت فایل‌های سیستم
+- سیستم چت و تبادل متن زنده بین دستگاه‌ها با قابلیت ویرایش، کپی، حذف و دانلود خروجی متنی
+- امکان خروجی تک‌فایل `FileShare.exe` (Self-Contained) بدون نیاز به نصب بودن .NET روی سیستم مقصد
+
+---
+
+### 📂 ساختار ذخیره‌سازی
+
+داده‌های برنامه در مسیر زیر نگهداری می‌شوند:
 
 ```text
 Downloads\FileShare
+├── uploads\            # فایل‌های آپلود شده از وب
+├── messages.jsonl       # تاریخچه پیام‌های متنی
+└── shared-folder.txt   # مسیر پوشه اشتراکی انتخاب‌شده
 ```
 
-پوشه آپلود:
+---
 
-```text
-Downloads\FileShare\uploads
-```
+### 🚀 روش استفاده
 
-فایل پیام‌ها:
+1. برنامه **`FileShare.exe`** را اجرا کنید.
+2. آدرس‌های شبکه یا کد QR را در کنترل‌پنل مشاهده کنید.
+3. با مرورگر گوشی یا سیستم دیگر (که به همان Wi-Fi یا LAN وصل است) آدرس را باز یا QR کد را اسکن کنید.
+4. فایل‌ها و پوشه‌ها را مرور کنید، ویدیوها را به صورت آنلاین تماشا کنید یا با دانلود منجرهایی مانند IDM با سرعت بالا دانلود کنید.
 
-```text
-Downloads\FileShare\messages.jsonl
-```
+---
 
-مسیر پوشه اشتراکی انتخاب‌شده:
+### 💻 ساخت و اجرا از سورس کد
 
-```text
-Downloads\FileShare\shared-folder.txt
-```
-
-### روش استفاده
-
-1. برنامه `FileShare.exe` را اجرا کنید.
-2. در پنجره برنامه، آدرس محلی و آدرس‌های شبکه را ببینید.
-3. از دستگاه دیگر که به همان Wi-Fi یا شبکه محلی وصل است، یکی از آدرس‌های شبکه را در مرورگر باز کنید.
-4. در تب «فایل‌ها» می‌توانید فایل آپلود یا دانلود کنید.
-5. برای اشتراک‌گذاری فایل‌های یک پوشه موجود، در پنجره ویندوزی روی «تنظیم پوشه» بزنید و پوشه موردنظر را انتخاب کنید.
-6. فایل‌های آن پوشه در پنل وب با برچسب «اشتراکی» نمایش داده می‌شوند.
-7. در تب «تبادل پیام» می‌توانید متن را بین سیستم و دستگاه‌های دیگر جابه‌جا کنید.
-
-### ساخت و اجرا از سورس
-
-نیازمندی توسعه:
-
+نیازمندی‌ها:
 - Windows
-- .NET SDK 9
+- .NET SDK 9 یا بالاتر
 
 ساخت پروژه:
-
 ```powershell
 dotnet build
 ```
 
-اجرای نسخه Debug:
-
-```powershell
-dotnet run
-```
-
-### ساخت خروجی تک‌فایل
-
-برای ساخت یک فایل اجرایی مستقل برای ویندوز 64 بیت:
-
+ایجاد خروجی تک‌فایل مستقل (Single Executable):
 ```powershell
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
 ```
 
-خروجی در این مسیر ساخته می‌شود:
-
+خروجی در مسیر زیر ساخته می‌شود:
 ```text
 bin\Release\net9.0-windows\win-x64\publish\FileShare.exe
 ```
-
-این فایل روی سیستم مقصد به نصب جداگانه `.NET 9` نیاز ندارد.
-
-### نکات مهم
-
-- دستگاه‌ها باید داخل یک شبکه محلی باشند.
-- اگر آدرس شبکه نمایش داده نشد، اتصال Wi-Fi یا تنظیمات شبکه را بررسی کنید.
-- اگر فایروال ویندوز پرسید، دسترسی شبکه را برای برنامه مجاز کنید.
-- برنامه روی پورت `8887` اجرا می‌شود.
-- فایل‌های پوشه اشتراکی فقط برای دانلود نمایش داده می‌شوند و از پنل وب حذف نمی‌شوند.
-- این برنامه برای شبکه‌های قابل اعتماد طراحی شده است؛ آن را روی شبکه عمومی یا ناشناس اجرا نکنید.
 
 ---
 
 ## English
 
-**FileShare** is a lightweight Windows app for sharing files and text messages across a local network. It provides a clean desktop control window and runs an internal web panel so other devices on the same network, such as phones or laptops, can connect through a browser.
+**FileShare** is a lightweight, modern, and high-performance Windows desktop application designed for seamless file sharing, directory browsing, online video streaming, and real-time text messaging over a local network (LAN / Wi-Fi).
 
-Current version: **1.3**
+Current Version: **1.5**
 
-### Main Features
+---
 
-- Runs as a Windows desktop app without showing a terminal window
-- Responsive web panel with dark and light themes
-- Shows local network addresses for other devices
-- Upload files from other devices to the host computer
-- Download uploaded files from any device on the local network
-- Delete uploaded files from the web panel
-- Configure a separate shared folder
-- Show shared-folder files in the web panel with a shared label
-- Download shared-folder files without uploading them again
-- Prevent deletion of shared-folder files from the web panel
-- Exchange text messages between devices
-- Copy, edit, delete, bulk-select, and download messages
-- Publish as a self-contained single `exe`, with no .NET installation required on the target machine
+### 🌟 What's New in v1.5
 
-### Storage Layout
+- **📁 Subdirectory Explorer & Breadcrumb Navigation:** Browse nested folders and subdirectories inside shared folders effortlessly.
+- **⏯ Online Video & Audio Streaming:** Stream media files (`MP4`, `MKV`, `WebM`, `MOV`, `AVI`, `MP3`, etc.) directly in the browser with HTTP 206 Range Request support.
+- **🚀 IDM Multi-Connection & Resume Support:** Full support for segmented multi-part downloading, `HEAD` requests, `ETag`, and `Last-Modified` headers for pause/resume compatibility with download managers like IDM and ADM.
+- **📱 Responsive Media Player Modal:** Clean, auto-scaling media modal adapted for both desktop monitors and smartphone screens.
+- **🎛 Compact Desktop Control Panel:** Sleek WinForms GUI with network address list, instant QR code generator for mobile connections, and default system browser launch.
+- **🏗 Modular Clean Codebase:** Cleanly refactored into `FileService.cs`, `MessageService.cs`, `HttpServer.cs`, `MainForm.cs`, and a minimal `Program.cs`.
 
-By default, application data is stored under:
+---
+
+### 📋 Core Features
+
+- Standalone Windows GUI app (no terminal window required)
+- Sleek Dark and Light themes for the web interface
+- Upload files directly from any connected phone or laptop to the host PC
+- Read-only protection for host shared folders (prevents accidental deletion via web)
+- Live text messaging with edit, copy, bulk delete, and export capabilities
+- Publishable as a single-file `exe` with no .NET runtime required on target machines
+
+---
+
+### 📂 File Storage Layout
+
+Application configuration and uploads are stored under:
 
 ```text
 Downloads\FileShare
+├── uploads\            # Uploaded files
+├── messages.jsonl       # Text message logs
+└── shared-folder.txt   # Selected shared folder path
 ```
 
-Upload folder:
+---
 
-```text
-Downloads\FileShare\uploads
-```
+### 💻 Build & Publish
 
-Message log:
-
-```text
-Downloads\FileShare\messages.jsonl
-```
-
-Selected shared-folder path:
-
-```text
-Downloads\FileShare\shared-folder.txt
-```
-
-### How To Use
-
-1. Run `FileShare.exe`.
-2. Check the local and network addresses in the desktop window.
-3. On another device connected to the same Wi-Fi or local network, open one of the network addresses in a browser.
-4. Use the Files tab to upload and download files.
-5. To share an existing folder, click the folder setup button in the desktop window and select a folder.
-6. Files from that folder will appear in the web panel with a shared label.
-7. Use the Messages tab to exchange text between the host computer and other devices.
-
-### Build From Source
-
-Development requirements:
-
-- Windows
-- .NET SDK 9
-
-Build:
-
+Build Debug version:
 ```powershell
 dotnet build
 ```
 
-Run the Debug version:
-
-```powershell
-dotnet run
-```
-
-### Publish A Single Executable
-
-Create a self-contained single-file executable for 64-bit Windows:
-
+Publish as a self-contained single file:
 ```powershell
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
 ```
 
-The output is created here:
-
+Executable output path:
 ```text
 bin\Release\net9.0-windows\win-x64\publish\FileShare.exe
 ```
-
-The generated executable does not require `.NET 9` to be installed on the target machine.
-
-### Notes
-
-- All devices must be on the same local network.
-- If no network address appears, check Wi-Fi and network settings.
-- If Windows Firewall prompts for access, allow the app on the local network.
-- The app listens on port `8887`.
-- Shared-folder files are download-only from the web panel and cannot be deleted there.
-- This app is designed for trusted local networks. Do not run it on public or untrusted networks.
-"# fileshare" 
-"# fileshare" 

@@ -84,6 +84,7 @@
     /* ===== FILE LIST ===== */
     .fl{display:grid;gap:10px}
     .fr{border:1px solid var(--border);border-radius:var(--rs);background:var(--bg3);transition:border-color var(--tr),transform .2s ease;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:12px 14px}.fr:hover{border-color:var(--border2);transform:translateY(-1px)}.fn{font-weight:800;font-size:14px;overflow-wrap:anywhere}.fm{font-size:12px;color:var(--text3);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+    .fr.isFolder{cursor:pointer;border-color:rgba(123,95,252,.25);background:rgba(123,95,252,.04)}.fr.isFolder:hover{border-color:var(--accent2);background:var(--a2g)}
     .fa{display:flex;gap:8px;flex-wrap:wrap}
     .es{text-align:center;padding:34px 20px;color:var(--text3);font-size:14px}.esi{font-size:32px;display:block;margin-bottom:10px;opacity:.4}
 
@@ -183,7 +184,7 @@
 </header>
 
 <main>
-  <div class="hero"><h1>اشتراک‌گذاری فایل و پیام</h1><p>از تب پایین  فایل‌ها را مدیریت کن یا بخش تبادل پیام را برای ارسال و دریافت متن بین دستگاه‌ها باز کن.</p></div>
+  <div class="hero"><h1>اشتراک‌گذاری فایل و پیام</h1><p>از تب پایین فایل‌ها را مدیریت کن یا بخش تبادل پیام را برای ارسال و دریافت متن بین دستگاه‌ها باز کن.</p></div>
 
   <div class="tabs" role="tablist" aria-label="بخش‌ها">
     <button class="tabBtn active" type="button" role="tab" aria-selected="true" aria-controls="filesPanel" data-tab="files"><img class="tabIcon" src="/icon.ico" alt="">فایل‌ها</button>
@@ -199,10 +200,32 @@
       <div class="pw"><div class="pbb"><div class="pbf" id="progressFill"></div></div><div class="pl"><span id="message">فایل را انتخاب کن و آپلود بزن.</span><span id="progressPct"></span></div></div>
     </div>
     <div class="card">
-      <div class="ch"><div class="ci p">📋</div><h2>فایل‌های موجود</h2></div>
+      <div class="ch" style="justify-content:space-between;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="ci p">📋</div>
+          <h2>فایل‌ها و پوشه‌ها</h2>
+        </div>
+        <div id="breadcrumb" style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);background:var(--bg3);padding:4px 10px;border-radius:var(--rs);border:1px solid var(--border);flex-wrap:wrap;">
+          <span style="cursor:pointer;color:var(--accent);font-weight:bold" onclick="navigateToFolder('')">🏠 ریشه</span>
+        </div>
+      </div>
       <div id="fileList" class="fl"><div class="es"><span class="esi">📭</span>در حال بارگذاری...</div></div>
     </div>
   </section>
+
+  <!-- MEDIA PLAYER MODAL -->
+  <div id="mediaModal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.88);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:12px;box-sizing:border-box;">
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);width:100%;max-width:860px;max-height:92vh;padding:14px;box-shadow:0 24px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;gap:10px;box-sizing:border-box;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-shrink:0;">
+        <h3 id="mediaTitle" style="font-size:14px;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:right;">پیش‌نمایش آنلاین</h3>
+        <button class="btn bd br" style="min-height:32px;padding:4px 14px;flex-shrink:0;" onclick="closeMediaPlayer()">✕ بستن</button>
+      </div>
+      <div style="width:100%;flex:1;background:#000;border-radius:var(--rs);overflow:hidden;display:flex;justify-content:center;align-items:center;min-height:0;">
+        <video id="mediaVideo" controls style="width:100%;max-width:100%;max-height:75vh;object-fit:contain;display:none;outline:none;"></video>
+        <audio id="mediaAudio" controls style="width:100%;max-width:100%;padding:16px;display:none;outline:none;"></audio>
+      </div>
+    </div>
+  </div>
 
   <!-- MESSAGES PANEL -->
   <section class="tabPanel" id="messagesPanel" role="tabpanel">
@@ -287,11 +310,11 @@
       </div>
       <div class="guideStep">
         <div class="gsNum">۲</div>
-        <div class="gsText">فایل‌های داخل آن پوشه، بدون آپلود دوباره، در بخش <strong class="guideBadge">📁 فایل‌ها</strong> با برچسب <strong>اشتراکی</strong> نمایش داده می‌شوند.</div>
+        <div class="gsText">فایل‌های داخل آن پوشه و زیرپوشه‌های آن، در بخش <strong class="guideBadge">📁 فایل‌ها</strong> نمایش داده می‌شوند.</div>
       </div>
       <div class="guideStep">
         <div class="gsNum">۳</div>
-        <div class="gsText">دستگاه‌های دیگر می‌توانند این فایل‌ها را دانلود کنند، اما دکمه حذف برای فایل‌های اشتراکی نمایش داده نمی‌شود تا فایل‌های اصلی سیستم ناخواسته پاک نشوند.</div>
+        <div class="gsText">دستگاه‌های دیگر می‌توانند با کلیک روی هر پوشه وارد آن شوند و فایل‌ها را دانلود کنند.</div>
       </div>
       <div class="guideTip">💡 <b>نکته:</b> برای تغییر پوشه اشتراکی، دوباره از همان دکمه <b>تنظیم پوشه</b> استفاده کن.</div>
     </div>
@@ -338,6 +361,9 @@
 <footer>ساخته شده برای شبکه‌های محلی — FileShare</footer>
 
 <script>
+  // Current directory path state
+  let currentFolderPath = '';
+
   // Theme
   const html=document.documentElement,themeBtn=document.getElementById('themeBtn'),saved=localStorage.getItem('theme')||'dark';
   html.setAttribute('data-theme',saved);
@@ -405,22 +431,23 @@
       qr.alt='QR';
       qr.loading='lazy';
       qr.src='/api/qrcode?text='+encodeURIComponent(item.url);
-      const info=document.createElement('div');
+      const info=document.createDocumentFragment();
       const url=document.createElement('div');
       url.className='netDUrl';
       url.textContent=item.url;
       const ip=document.createElement('span');
       ip.className='netDIp';
       ip.textContent=item.ip;
-      info.appendChild(url);
-      info.appendChild(ip);
+      const container=document.createElement('div');
+      container.appendChild(url);
+      container.appendChild(ip);
       const copy=document.createElement('button');
       copy.className='netCopyBtn';
       copy.type='button';
       copy.dataset.copyUrl=item.url;
       copy.textContent='کپی';
       el.appendChild(qr);
-      el.appendChild(info);
+      el.appendChild(container);
       el.appendChild(copy);
       frag.appendChild(el);
     }
@@ -439,7 +466,7 @@
   }
 
   // ===== REFS =====
-  const fileInput=document.getElementById('fileInput'),uploadBtn=document.getElementById('uploadBtn'),selectedName=document.getElementById('selectedName'),progressFill=document.getElementById('progressFill'),progressPct=document.getElementById('progressPct'),message=document.getElementById('message'),fileList=document.getElementById('fileList'),senderName=document.getElementById('senderName'),remoteText=document.getElementById('remoteText'),sendMessageBtn=document.getElementById('sendMessageBtn'),copyDraftBtn=document.getElementById('copyDraftBtn'),clearMessagesBtn=document.getElementById('clearMessagesBtn'),remoteStatus=document.getElementById('remoteStatus'),messageList=document.getElementById('messageList'),selectAllMessages=document.getElementById('selectAllMessages'),deleteSelectedBtn=document.getElementById('deleteSelectedBtn'),selCount=document.getElementById('selCount');
+  const fileInput=document.getElementById('fileInput'),uploadBtn=document.getElementById('uploadBtn'),selectedName=document.getElementById('selectedName'),progressFill=document.getElementById('progressFill'),progressPct=document.getElementById('progressPct'),message=document.getElementById('message'),fileList=document.getElementById('fileList'),breadcrumb=document.getElementById('breadcrumb'),senderName=document.getElementById('senderName'),remoteText=document.getElementById('remoteText'),sendMessageBtn=document.getElementById('sendMessageBtn'),copyDraftBtn=document.getElementById('copyDraftBtn'),clearMessagesBtn=document.getElementById('clearMessagesBtn'),remoteStatus=document.getElementById('remoteStatus'),messageList=document.getElementById('messageList'),selectAllMessages=document.getElementById('selectAllMessages'),deleteSelectedBtn=document.getElementById('deleteSelectedBtn'),selCount=document.getElementById('selCount');
   let remoteMessages=[],lastMessageId=0,selectedMessageIds=new Set(),selectionMode=false;
   senderName.value=localStorage.getItem('senderName')||'';
   senderName.addEventListener('input',()=>localStorage.setItem('senderName',senderName.value.trim()));
@@ -499,10 +526,8 @@
     syncSelectionUi();
   }
 
-  // Track which message is currently being edited (prevents polling from destroying edit textarea)
   let editingMessageId=null;
 
-  // ===== SINGLE unified click handler for messageList =====
   messageList.addEventListener('click',async event=>{
     const saveBtn=event.target.closest('[data-save-message]');
     const cancelBtn=event.target.closest('[data-cancel-edit]');
@@ -511,7 +536,6 @@
     const deleteBtn=event.target.closest('[data-delete-message]');
     const cbWrap=event.target.closest('.msgCbWrap');
 
-    // --- SAVE edit ---
     if(saveBtn){
       const id=saveBtn.dataset.saveMessage;
       const item=remoteMessages.find(msg=>String(msg.id)===String(id));if(!item)return;
@@ -529,17 +553,14 @@
       return;
     }
 
-    // --- CANCEL edit ---
     if(cancelBtn){editingMessageId=null;renderMessages();return}
 
-    // --- COPY ---
     if(copyBtn){
       const id=copyBtn.dataset.copyMessage;
       const item=remoteMessages.find(msg=>String(msg.id)===String(id));if(!item)return;
       await copyText(item.text);setRemoteStatus('پیام کپی شد.',true);return;
     }
 
-    // --- DELETE ---
     if(deleteBtn){
       const id=deleteBtn.dataset.deleteMessage;
       const item=remoteMessages.find(msg=>String(msg.id)===String(id));if(!item)return;
@@ -555,7 +576,6 @@
       return;
     }
 
-    // --- EDIT (open textarea) ---
     if(editBtn){
       const id=editBtn.dataset.editMessage;
       const item=remoteMessages.find(msg=>String(msg.id)===String(id));if(!item)return;
@@ -567,10 +587,8 @@
       return;
     }
 
-    // --- CHECKBOX click (label/box area) ---
-    if(cbWrap){return} // handled by 'change' event below
+    if(cbWrap){return}
 
-    // --- CARD click = toggle selection ---
     const row=event.target.closest('.msgRow');
     if(!row||event.target.closest('.editArea'))return;
     const id=String(row.dataset.messageId);
@@ -578,7 +596,6 @@
     syncSelectionUi();
   });
 
-  // Checkbox change
   messageList.addEventListener('change',event=>{
     const box=event.target.closest('[data-select-message]');if(!box)return;
     const id=box.dataset.selectMessage;
@@ -586,13 +603,11 @@
     syncSelectionUi();
   });
 
-  // Select all
   selectAllMessages.addEventListener('change',()=>{
     selectedMessageIds=selectAllMessages.checked?new Set(remoteMessages.map(item=>String(item.id))):new Set();
     renderMessages();
   });
 
-  // Bulk delete
   deleteSelectedBtn.addEventListener('click',async()=>{
     const ids=[...selectedMessageIds];if(!ids.length)return;
     if(!confirm(`${ids.length} پیام انتخاب‌شده حذف شوند؟`))return;
@@ -601,7 +616,6 @@
     catch{setRemoteStatus('حذف پیام‌های انتخاب‌شده ناموفق بود.',false);syncSelectionUi()}
   });
 
-  // Send message
   sendMessageBtn.addEventListener('click',async()=>{
     const text=remoteText.value;if(!text.trim()){setRemoteStatus('اول متن پیام را بنویس.',false);return}
     sendMessageBtn.disabled=true;
@@ -617,7 +631,6 @@
     catch{setRemoteStatus('پاک کردن پیام‌ها ناموفق بود.',false)}finally{clearMessagesBtn.disabled=false}
   });
 
-  // Load messages (skip re-render if user is currently editing a message)
   async function loadMessages(){
     try{
       const res=await fetch("/api/messages");const items=await res.json();
@@ -627,22 +640,150 @@
     }catch{setRemoteStatus("خواندن پیام‌ها ناموفق بود.",false)}
   }
 
-  // Load files
-  async function loadFiles(){
-    try{const res=await fetch('/api/files');const files=await res.json();
-      if(!files.length){fileList.innerHTML='<div class="es"><span class="esi">📭</span>هنوز فایلی آپلود نشده است.</div>';return}
-      fileList.innerHTML='';const frag=document.createDocumentFragment();
-      for(const file of files){const row=document.createElement('div');row.className='fr';row.innerHTML=`<div><div class="fn"></div><div class="fm"><span>💾 ${fmtBytes(file.size)}</span><span>🕐 ${fmtDate(file.modified)}</span></div></div><div class="fa"><a class="btn bd" href="/download/${encodeURIComponent(file.name)}">دانلود</a><button class="btn bd br" type="button" data-delete="${encodeURIComponent(file.name)}">حذف</button></div>`;row.querySelector('.fn').textContent=file.name;frag.appendChild(row)}
-      fileList.appendChild(frag)}
-    catch{fileList.innerHTML='<div class="es"><span class="esi">⚠</span>خواندن فایل‌ها ناموفق بود.</div>'}
+  // ===== FOLDER NAVIGATION & BREADCRUMBS =====
+  function renderBreadcrumb(path){
+    breadcrumb.innerHTML='<span style="cursor:pointer;color:var(--accent);font-weight:bold" onclick="navigateToFolder(\'\')">🏠 ریشه</span>';
+    if(!path)return;
+
+    const parts=path.split('/');
+    let currentAcc='';
+    for(let i=0;i<parts.length;i++){
+      const part=parts[i];
+      currentAcc+= (currentAcc?'/':'') + part;
+      const targetPath=currentAcc;
+      const sep=document.createElement('span');
+      sep.textContent=' / ';
+      sep.style.color='var(--text3)';
+      breadcrumb.appendChild(sep);
+
+      const link=document.createElement('span');
+      const displayName = (part==='shared'?'پوشه اشتراکی':(part==='upload'?'آپلودها':part));
+      link.textContent=displayName;
+      if(i===parts.length-1){
+        link.style.color='var(--text)';
+        link.style.fontWeight='bold';
+      } else {
+        link.style.cursor='pointer';
+        link.style.color='var(--accent)';
+        link.onclick=()=>navigateToFolder(targetPath);
+      }
+      breadcrumb.appendChild(link);
+    }
   }
 
-  fileList.addEventListener('click',async event=>{
-    const btn=event.target.closest('[data-delete]');if(!btn)return;
-    const name=decodeURIComponent(btn.dataset.delete);
-    if(!confirm(`فایل "${name}" حذف شود؟`))return;btn.disabled=true;
-    try{const res=await fetch(`/api/files/${encodeURIComponent(name)}`,{method:'DELETE'});if(!res.ok)throw new Error();setMsg('فایل حذف شد.','ok');await loadFiles()}
-    catch{btn.disabled=false;setMsg('حذف فایل انجام نشد.','err')}
+  function navigateToFolder(path){
+    currentFolderPath = path || '';
+    loadFiles();
+  }
+
+  // ===== MEDIA PLAYER MODAL =====
+  const mediaModal = document.getElementById('mediaModal'), mediaTitle = document.getElementById('mediaTitle'), mediaVideo = document.getElementById('mediaVideo'), mediaAudio = document.getElementById('mediaAudio');
+
+  function isMediaFile(fileName){
+    const ext = (fileName.split('.').pop() || '').toLowerCase();
+    return ['mp4','webm','mkv','mov','avi','mp3','wav','ogg'].includes(ext);
+  }
+
+  function isAudioFile(fileName){
+    const ext = (fileName.split('.').pop() || '').toLowerCase();
+    return ['mp3','wav','ogg'].includes(ext);
+  }
+
+  function playMedia(path, fileName){
+    const streamUrl = `/stream/${encodeURIComponent(path)}`;
+    mediaTitle.textContent = '🎬 ' + fileName;
+    mediaVideo.pause(); mediaAudio.pause();
+    mediaVideo.src = ''; mediaAudio.src = '';
+
+    if(isAudioFile(fileName)){
+      mediaVideo.style.display = 'none';
+      mediaAudio.style.display = 'block';
+      mediaAudio.src = streamUrl;
+      mediaAudio.play();
+    } else {
+      mediaAudio.style.display = 'none';
+      mediaVideo.style.display = 'block';
+      mediaVideo.src = streamUrl;
+      mediaVideo.play();
+    }
+    mediaModal.style.display = 'flex';
+  }
+
+  function closeMediaPlayer(){
+    mediaVideo.pause(); mediaAudio.pause();
+    mediaVideo.src = ''; mediaAudio.src = '';
+    mediaModal.style.display = 'none';
+  }
+
+  mediaModal.addEventListener('click', e => {
+    if(e.target === mediaModal) closeMediaPlayer();
+  });
+
+  async function loadFiles(){
+    try{
+      renderBreadcrumb(currentFolderPath);
+      const url = '/api/files' + (currentFolderPath ? '?path=' + encodeURIComponent(currentFolderPath) : '');
+      const res = await fetch(url);
+      const files = await res.json();
+
+      if(!files.length){
+        fileList.innerHTML='<div class="es"><span class="esi">📭</span>این پوشه خالی است.</div>';
+        return;
+      }
+
+      fileList.innerHTML='';
+      const frag=document.createDocumentFragment();
+      for(const item of files){
+        const row=document.createElement('div');
+        const isFolder = item.isDirectory;
+        const shared = item.source === 'shared';
+
+        row.className = 'fr' + (isFolder ? ' isFolder' : '');
+
+        if(isFolder){
+          row.onclick = () => navigateToFolder(item.path);
+          row.innerHTML=`<div><div class="fn">📁 ${item.name}</div><div class="fm"><span>پوشه</span>${shared?'<span>اشتراکی</span>':''}</div></div><div class="fa"><button class="btn bd" type="button">باز کردن 📂</button></div>`;
+        } else {
+          const dl=`/download/${encodeURIComponent(item.path)}`;
+          const canPlay = isMediaFile(item.name);
+          row.innerHTML=`<div><div class="fn">${canPlay?'🎬':'📄'} ${item.name}</div><div class="fm"><span>💾 ${fmtBytes(item.size)}</span><span>🕐 ${fmtDate(item.modified)}</span>${shared?'<span>اشتراکی</span>':''}</div></div><div class="fa">${canPlay?`<button class="btn bd" type="button" data-play="${encodeURIComponent(item.path)}" data-name="${encodeURIComponent(item.name)}">پخش ⏯</button>`:''}<a class="btn bd" href="${dl}">دانلود</a>${item.canDelete?`<button class="btn bd br" type="button" data-delete="${encodeURIComponent(item.path)}">حذف</button>`:''}</div>`;
+        }
+        frag.appendChild(row);
+      }
+      fileList.appendChild(frag);
+    }catch(e){
+      fileList.innerHTML='<div class="es"><span class="esi">⚠</span>خواندن فایل‌ها ناموفق بود.</div>';
+    }
+  }
+
+  fileList.addEventListener('click', async event => {
+    const playBtn = event.target.closest('[data-play]');
+    if(playBtn){
+      event.stopPropagation();
+      const path = decodeURIComponent(playBtn.dataset.play);
+      const name = decodeURIComponent(playBtn.dataset.name);
+      playMedia(path, name);
+      return;
+    }
+
+    const deleteBtn = event.target.closest('[data-delete]');
+    if(deleteBtn){
+      event.stopPropagation();
+      const path = decodeURIComponent(deleteBtn.dataset.delete);
+      const fileName = path.split('/').pop();
+      if(!confirm(`فایل "${fileName}" حذف شود؟`))return;
+      deleteBtn.disabled = true;
+      try{
+        const res = await fetch(`/api/files/${encodeURIComponent(path)}`,{method:'DELETE'});
+        if(!res.ok)throw new Error();
+        setMsg('فایل حذف شد.','ok');
+        await loadFiles();
+      }catch{
+        deleteBtn.disabled = false;
+        setMsg('حذف فایل انجام نشد.','err');
+      }
+      return;
+    }
   });
 
   uploadBtn.addEventListener('click',()=>{
@@ -654,23 +795,6 @@
     xhr.onerror=()=>{uploadBtn.disabled=false;setMsg('ارتباط با سرور قطع شد.','err')};
     xhr.send(data);
   });
-
-  // Shared-folder aware file list override
-  loadFiles=async function(){
-    try{
-      const res=await fetch('/api/files');const files=await res.json();
-      if(!files.length){fileList.innerHTML='<div class="es"><span class="esi">📭</span>هنوز فایلی برای نمایش وجود ندارد.</div>';return}
-      fileList.innerHTML='';const frag=document.createDocumentFragment();
-      for(const file of files){
-        const row=document.createElement('div'),shared=file.source==='shared';
-        const dl=shared?`/download/shared/${encodeURIComponent(file.name)}`:`/download/${encodeURIComponent(file.name)}`;
-        row.className='fr';
-        row.innerHTML=`<div><div class="fn"></div><div class="fm"><span>💾 ${fmtBytes(file.size)}</span><span>🕐 ${fmtDate(file.modified)}</span>${shared?'<span>اشتراکی</span>':''}</div></div><div class="fa"><a class="btn bd" href="${dl}">دانلود</a>${file.canDelete?`<button class="btn bd br" type="button" data-delete="${encodeURIComponent(file.name)}">حذف</button>`:''}</div>`;
-        row.querySelector('.fn').textContent=file.name;frag.appendChild(row);
-      }
-      fileList.appendChild(frag);
-    }catch{fileList.innerHTML='<div class="es"><span class="esi">⚠</span>خواندن فایل‌ها ناموفق بود.</div>'}
-  };
 
   // Init
   loadNetworkLinks();loadFiles();loadMessages();
