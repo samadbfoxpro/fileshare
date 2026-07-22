@@ -67,7 +67,7 @@ namespace FileShare
                 e.Graphics.DrawLine(pen, 0, headerPanel.Height - 1, headerPanel.Width, headerPanel.Height - 1);
             };
 
-            var lblTitle = new Label { Text = "⚡ FileShare Server", ForeColor = cText, Font = new Font("Segoe UI", 11F, FontStyle.Bold), AutoSize = true, Location = new Point(14, 10) };
+            var lblTitle = new Label { Text = "⚡ FileShare v1.5 Server", ForeColor = cText, Font = new Font("Segoe UI", 11F, FontStyle.Bold), AutoSize = true, Location = new Point(14, 10) };
             _lblStatus = new Label { Text = "● سرور فعال است", ForeColor = cGreen, Font = new Font("Segoe UI", 8.5F, FontStyle.Bold), AutoSize = true, Location = new Point(16, 32) };
 
             var btnOpen = Btn("🌐 باز کردن وب", cBlueBg, cBlue, 115, 34);
